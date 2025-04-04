@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:locomo_app/screens/register.dart';
+import 'search.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -182,7 +184,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     height: 56,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pushNamed(context, '/faq');
+                        Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                  builder: (context) =>  TravelHomePage()),
+                            );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFC32E31),
@@ -284,7 +289,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       GestureDetector(
                         onTap: () {
-                          Navigator.pushNamed(context, '/register');
+                         Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                  builder: (context) => const RegisterScreen()),
+                            );
                         },
                         child: const Text(
                           'Register',

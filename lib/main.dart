@@ -6,7 +6,8 @@ import 'screens/welcome_screen.dart';
 import 'screens/onboarding_screen1.dart';
 import 'screens/onboarding_screen2.dart';
 import 'screens/onboarding_screen3.dart';
-import 'screens/register.dart'; 
+import 'screens/register.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -38,6 +39,7 @@ class OnboardingScreen extends StatefulWidget {
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
+
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
@@ -54,7 +56,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: _showWelcome 
+        child: _showWelcome
             ? WelcomeScreen(
                 onComplete: () {
                   setState(() {
@@ -95,7 +97,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 40, left: 40, right: 40),
+                    padding:
+                        const EdgeInsets.only(bottom: 40, left: 40, right: 40),
                     child: SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -107,7 +110,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               curve: Curves.easeIn,
                             );
                           } else {
-                            // Navigate to main app
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                  builder: (context) => const RegisterScreen()),
+                            );
                           }
                         },
                         style: ElevatedButton.styleFrom(
