@@ -7,8 +7,11 @@ import 'screens/onboarding_screen1.dart';
 import 'screens/onboarding_screen2.dart';
 import 'screens/onboarding_screen3.dart';
 import 'screens/register.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 

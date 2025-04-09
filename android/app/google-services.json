@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "475352204751",
+    "project_id": "locomo-ae5f7",
+    "storage_bucket": "locomo-ae5f7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:475352204751:android:45e08f64449de82932feba",
+        "android_client_info": {
+          "package_name": "com.example.locomo_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDru2TwDyui3HH6PcC0PFSxRrv3CJY2b_8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:475352204751:android:06da5a04c25d062832feba",
+        "android_client_info": {
+          "package_name": "com.locomo.locomo_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDru2TwDyui3HH6PcC0PFSxRrv3CJY2b_8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

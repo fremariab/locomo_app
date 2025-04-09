@@ -374,3 +374,398 @@ class RedCurvePainter extends CustomPainter {
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
+// import 'package:flutter/material.dart';
+// import 'dart:ui';
+// import 'package:flutter/services.dart';
+// import 'login.dart';
+// import '../services/auth_service.dart'; // Ensure this file contains registerWithEmail
+
+// class RegisterScreen extends StatefulWidget {
+//   const RegisterScreen({Key? key}) : super(key: key);
+
+//   @override
+//   State<RegisterScreen> createState() => _RegisterScreenState();
+// }
+
+// class _RegisterScreenState extends State<RegisterScreen> {
+//   bool _obscurePassword = true;
+//   bool _obscureRepeatPassword = true;
+
+//   // Create controllers for text fields
+//   final TextEditingController _fullNameController = TextEditingController();
+//   final TextEditingController _emailController    = TextEditingController();
+//   final TextEditingController _passwordController = TextEditingController();
+//   final TextEditingController _repeatPasswordController = TextEditingController();
+
+//   @override
+//   void dispose() {
+//     _fullNameController.dispose();
+//     _emailController.dispose();
+//     _passwordController.dispose();
+//     _repeatPasswordController.dispose();
+//     super.dispose();
+//   }
+
+//   // A helper method to show SnackBar messages
+//   void _showMessage(String message) {
+//     ScaffoldMessenger.of(context).showSnackBar(
+//       SnackBar(content: Text(message)),
+//     );
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       body: SingleChildScrollView(
+//         child: Column(
+//           children: [
+//             Stack(
+//               children: [
+//                 CustomPaint(
+//                   size: const Size(double.infinity, 225),
+//                   painter: RedCurvePainter(),
+//                 ),
+//                 Container(
+//                   width: double.infinity,
+//                   padding: const EdgeInsets.fromLTRB(32, 40, 32, 32),
+//                   child: Column(
+//                     crossAxisAlignment: CrossAxisAlignment.start,
+//                     children: [
+//                       const SizedBox(height: 10),
+//                       Center(
+//                         child: Image.asset(
+//                           'assets/images/locomo_logo3.png',
+//                           width: 50,
+//                           height: 50,
+//                         ),
+//                       ),
+//                       const SizedBox(height: 10),
+//                       const Text(
+//                         'Register',
+//                         style: TextStyle(
+//                           fontSize: 40,
+//                           fontFamily: 'Poppins',
+//                           fontWeight: FontWeight.bold,
+//                           color: Colors.white,
+//                         ),
+//                       ),
+//                       const SizedBox(height: 3),
+//                       const Text(
+//                         'Create your account',
+//                         style: TextStyle(
+//                           fontSize: 20,
+//                           fontFamily: 'Poppins',
+//                           fontWeight: FontWeight.w400,
+//                           color: Colors.white,
+//                         ),
+//                       ),
+//                     ],
+//                   ),
+//                 ),
+//               ],
+//             ),
+//             const SizedBox(height: 22),
+//             Padding(
+//               padding: const EdgeInsets.symmetric(horizontal: 24),
+//               child: Column(
+//                 crossAxisAlignment: CrossAxisAlignment.start,
+//                 children: [
+//                   const SizedBox(height: 16),
+//                   // Full Name TextField (removed const to use controller)
+//                   TextField(
+//                     controller: _fullNameController,
+//                     decoration: const InputDecoration(
+//                       labelText: 'Full Name',
+//                       labelStyle: TextStyle(
+//                         color: Color(0xFFD9D9D9),
+//                         fontWeight: FontWeight.w200,
+//                         fontFamily: 'Poppins',
+//                         fontSize: 16,
+//                       ),
+//                       enabledBorder: OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
+//                       ),
+//                       focusedBorder: OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
+//                       ),
+//                       border: OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
+//                       ),
+//                       errorBorder: OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFc32e31)),
+//                       ),
+//                       focusedErrorBorder: OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFC32E31)),
+//                       ),
+//                       contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+//                     ),
+//                     style: const TextStyle(
+//                       color: Colors.black,
+//                       fontSize: 16,
+//                       fontFamily: 'Poppins',
+//                       fontWeight: FontWeight.w400,
+//                     ),
+//                   ),
+//                   const SizedBox(height: 16),
+//                   // Email TextField
+//                   TextField(
+//                     controller: _emailController,
+//                     keyboardType: TextInputType.emailAddress,
+//                     decoration: const InputDecoration(
+//                       labelText: 'Email',
+//                       labelStyle: TextStyle(
+//                         color: Color(0xFFD9D9D9),
+//                         fontWeight: FontWeight.w200,
+//                         fontFamily: 'Poppins',
+//                         fontSize: 16,
+//                       ),
+//                       enabledBorder: OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
+//                       ),
+//                       focusedBorder: OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
+//                       ),
+//                       border: OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
+//                       ),
+//                       errorBorder: OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFc32e31)),
+//                       ),
+//                       focusedErrorBorder: OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFC32E31)),
+//                       ),
+//                       contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+//                     ),
+//                     style: const TextStyle(
+//                       color: Colors.black,
+//                       fontSize: 16,
+//                       fontFamily: 'Poppins',
+//                       fontWeight: FontWeight.w400,
+//                     ),
+//                   ),
+//                   const SizedBox(height: 16),
+//                   // Password TextField
+//                   TextField(
+//                     controller: _passwordController,
+//                     obscureText: _obscurePassword,
+//                     decoration: InputDecoration(
+//                       labelText: 'Password',
+//                       labelStyle: const TextStyle(
+//                         color: Color(0xFFD9D9D9),
+//                         fontWeight: FontWeight.w200,
+//                         fontFamily: 'Poppins',
+//                         fontSize: 16,
+//                       ),
+//                       enabledBorder: const OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
+//                       ),
+//                       focusedBorder: const OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
+//                       ),
+//                       border: const OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
+//                       ),
+//                       errorBorder: const OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFc32e31)),
+//                       ),
+//                       focusedErrorBorder: const OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFC32E31)),
+//                       ),
+//                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+//                       suffixIcon: IconButton(
+//                         icon: Icon(
+//                           _obscurePassword ? Icons.visibility_off : Icons.visibility,
+//                           color: const Color(0xFFD9D9D9),
+//                         ),
+//                         onPressed: () {
+//                           setState(() {
+//                             _obscurePassword = !_obscurePassword;
+//                           });
+//                         },
+//                       ),
+//                     ),
+//                     style: const TextStyle(
+//                       color: Colors.black,
+//                       fontSize: 16,
+//                       fontFamily: 'Poppins',
+//                       fontWeight: FontWeight.w400,
+//                     ),
+//                   ),
+//                   const SizedBox(height: 16),
+//                   // Repeat Password TextField
+//                   TextField(
+//                     controller: _repeatPasswordController,
+//                     obscureText: _obscureRepeatPassword,
+//                     decoration: InputDecoration(
+//                       labelText: 'Repeat Password',
+//                       labelStyle: const TextStyle(
+//                         color: Color(0xFFD9D9D9),
+//                         fontWeight: FontWeight.w200,
+//                         fontFamily: 'Poppins',
+//                         fontSize: 16,
+//                       ),
+//                       enabledBorder: const OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
+//                       ),
+//                       focusedBorder: const OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
+//                       ),
+//                       border: const OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
+//                       ),
+//                       errorBorder: const OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFc32e31)),
+//                       ),
+//                       focusedErrorBorder: const OutlineInputBorder(
+//                         borderSide: BorderSide(color: Color(0xFFC32E31)),
+//                       ),
+//                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+//                       suffixIcon: IconButton(
+//                         icon: Icon(
+//                           _obscureRepeatPassword ? Icons.visibility_off : Icons.visibility,
+//                           color: const Color(0xFFD9D9D9),
+//                         ),
+//                         onPressed: () {
+//                           setState(() {
+//                             _obscureRepeatPassword = !_obscureRepeatPassword;
+//                           });
+//                         },
+//                       ),
+//                     ),
+//                     style: const TextStyle(
+//                       color: Colors.black,
+//                       fontSize: 16,
+//                       fontFamily: 'Poppins',
+//                       fontWeight: FontWeight.w400,
+//                     ),
+//                   ),
+//                   const SizedBox(height: 48),
+//                   // Register button
+//                   SizedBox(
+//                     width: double.infinity,
+//                     height: 56,
+//                     child: ElevatedButton(
+//                       onPressed: () async {
+//                         // Check if passwords match
+//                         if (_passwordController.text != _repeatPasswordController.text) {
+//                           _showMessage("Passwords do not match.");
+//                           return;
+//                         }
+//                         // Call the registration function
+//                         var user = await AuthService().registerWithEmail(
+//                           _emailController.text,
+//                           _passwordController.text,
+//                           _fullNameController.text,
+//                         );
+//                         if (user != null) {
+//                           // Registration successful: navigate to home or login screen
+//                           Navigator.of(context).pushReplacement(
+//                             MaterialPageRoute(
+//                               builder: (context) => const LoginScreen(),
+//                             ),
+//                           );
+//                         } else {
+//                           // Registration failed: show error message
+//                           _showMessage("Registration failed. Please try again.");
+//                         }
+//                       },
+//                       style: ElevatedButton.styleFrom(
+//                         backgroundColor: const Color(0xFFC32E31),
+//                         shape: RoundedRectangleBorder(
+//                           borderRadius: BorderRadius.circular(5),
+//                         ),
+//                         elevation: 0,
+//                         shadowColor: Colors.transparent,
+//                         surfaceTintColor: Colors.transparent,
+//                       ),
+//                       child: const Text(
+//                         'Register',
+//                         style: TextStyle(
+//                           fontSize: 22.5,
+//                           fontWeight: FontWeight.w600,
+//                           fontFamily: 'Poppins',
+//                           color: Color(0xFFffffff),
+//                         ),
+//                       ),
+//                     ),
+//                   ),
+//                   const SizedBox(height: 24),
+//                   // Login link
+//                   Row(
+//                     mainAxisAlignment: MainAxisAlignment.center,
+//                     children: [
+//                       const Text(
+//                         'Have an account? ',
+//                         style: TextStyle(
+//                           fontSize: 16,
+//                           color: Color(0xFFD9D9D9),
+//                           fontWeight: FontWeight.w300,
+//                           fontFamily: 'Poppins',
+//                         ),
+//                       ),
+//                       GestureDetector(
+//                         onTap: () {
+//                           Navigator.of(context).pushReplacement(
+//                             MaterialPageRoute(
+//                               builder: (context) => const LoginScreen(),
+//                             ),
+//                           );
+//                         },
+//                         child: const Text(
+//                           'Login',
+//                           style: TextStyle(
+//                             fontSize: 16,
+//                             fontWeight: FontWeight.w300,
+//                             fontFamily: 'Poppins',
+//                             color: Color(0xFFC32E31),
+//                           ),
+//                         ),
+//                       ),
+//                     ],
+//                   ),
+//                   const SizedBox(height: 32),
+//                 ],
+//               ),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+// class RedCurvePainter extends CustomPainter {
+//   @override
+//   void paint(Canvas canvas, Size size) {
+//     final Paint basePaint = Paint()
+//       ..color = const Color(0xFFB22A2D)
+//       ..style = PaintingStyle.fill;
+//     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), basePaint);
+
+//     final Paint lightCurvePaint = Paint()
+//       ..color = const Color(0xFFC32E31)
+//       ..style = PaintingStyle.fill;
+//     final Path lightCurvePath = Path();
+//     lightCurvePath.moveTo(0, size.height * 0.6);
+//     lightCurvePath.quadraticBezierTo(
+//         size.width * 0.7, size.height * 0.2, size.width, size.height * 0.3);
+//     lightCurvePath.lineTo(size.width, 0);
+//     lightCurvePath.lineTo(0, 0);
+//     lightCurvePath.close();
+//     canvas.drawPath(lightCurvePath, lightCurvePaint);
+
+//     final Paint darkCurvePaint = Paint()
+//       ..color = const Color(0xFF9E2528)
+//       ..style = PaintingStyle.fill;
+//     final Path darkCurvePath = Path();
+//     darkCurvePath.moveTo(size.width * 0.5, size.height);
+//     darkCurvePath.quadraticBezierTo(
+//         size.width * 0.8, size.height * 0.7, size.width, size.height * 0.8);
+//     darkCurvePath.lineTo(size.width, size.height);
+//     darkCurvePath.close();
+//     canvas.drawPath(darkCurvePath, darkCurvePaint);
+//   }
+
+//   @override
+//   bool shouldRepaint(CustomPainter oldDelegate) => false;
+// }
