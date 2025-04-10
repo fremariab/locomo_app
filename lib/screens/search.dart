@@ -1,23 +1,27 @@
 import 'search_results.dart';
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import 'package:flutter/services.dart';
+import 'package:locomo_app/widgets/MainScaffold.dart';
 
-class TravelHomePage extends StatelessWidget {
-  TravelHomePage({Key? key}) : super(key: key);
+class TravelHomePage extends StatefulWidget {
+  const TravelHomePage({Key? key}) : super(key: key);
 
+  @override
+  State<TravelHomePage> createState() => _TravelHomePageState();
+}
+
+class _TravelHomePageState extends State<TravelHomePage> {
   final TextEditingController _controller = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
+    return MainScaffold(
+      currentIndex: 0,
+      child: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Section with red background
               Stack(
                 children: [
                   CustomPaint(
@@ -27,19 +31,15 @@ class TravelHomePage extends StatelessWidget {
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
-                   
                     child: Column(
                       children: [
-                                                const SizedBox(height: 5),
-
+                        const SizedBox(height: 5),
                         Image.asset(
                           'assets/images/locomo_logo3.png',
                           width: 50,
                           height: 50,
                         ),
-
                         const SizedBox(height: 5),
-                        // Title Text
                         const Text(
                           'What are your\ntravel plans?',
                           textAlign: TextAlign.center,
@@ -55,20 +55,17 @@ class TravelHomePage extends StatelessWidget {
                   ),
                 ],
               ),
-
-              // Search Form Section
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Origin TextField
                     const TextField(
                       decoration: InputDecoration(
                         labelText: 'Origin',
                         labelStyle: TextStyle(
                           color: Color(0xFFD9D9D9),
-                          fontWeight: FontWeight.w200, // Semi-bold weight
+                          fontWeight: FontWeight.w200,
                           fontFamily: 'Poppins',
                           fontSize: 16,
                         ),
@@ -77,15 +74,6 @@ class TravelHomePage extends StatelessWidget {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-                        ),
-                        border: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-                        ),
-                        errorBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFFc32e31)),
-                        ),
-                        focusedErrorBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFFC32E31)),
                         ),
                         contentPadding:
                             EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -98,14 +86,12 @@ class TravelHomePage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    // Destination TextField
                     const TextField(
                       decoration: InputDecoration(
                         labelText: 'Destination',
                         labelStyle: TextStyle(
                           color: Color(0xFFD9D9D9),
-                          fontWeight: FontWeight.w200, // Semi-bold weight
+                          fontWeight: FontWeight.w200,
                           fontFamily: 'Poppins',
                           fontSize: 16,
                         ),
@@ -114,15 +100,6 @@ class TravelHomePage extends StatelessWidget {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-                        ),
-                        border: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-                        ),
-                        errorBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFFc32e31)),
-                        ),
-                        focusedErrorBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFFC32E31)),
                         ),
                         contentPadding:
                             EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -135,17 +112,13 @@ class TravelHomePage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-
                     Row(
                       children: [
-                        // Travel Preference TextField
                         Expanded(
                           flex: 2,
                           child: DropdownButtonFormField<String>(
-                            iconEnabledColor: Color(0xFFFFFFFF),
-                            focusColor: Color(0xFFFFFFFF),
+                            iconEnabledColor: Colors.white,
                             dropdownColor: Color(0xFFd9d9d9),
-                            iconDisabledColor: Color(0xFFFFFFFF),
                             decoration: InputDecoration(
                               labelText: 'Travel Preference',
                               labelStyle: TextStyle(
@@ -162,18 +135,6 @@ class TravelHomePage extends StatelessWidget {
                                 borderSide:
                                     BorderSide(color: Color(0xFFD9D9D9)),
                               ),
-                              border: OutlineInputBorder(
-                                borderSide:
-                                    BorderSide(color: Color(0xFFD9D9D9)),
-                              ),
-                              errorBorder: OutlineInputBorder(
-                                borderSide:
-                                    BorderSide(color: Color(0xFFc32e31)),
-                              ),
-                              focusedErrorBorder: OutlineInputBorder(
-                                borderSide:
-                                    BorderSide(color: Color(0xFFC32E31)),
-                              ),
                               contentPadding: EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 12),
                             ),
@@ -183,31 +144,24 @@ class TravelHomePage extends StatelessWidget {
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w400,
                             ),
-                            value: 'none', // default value
-                            items: [
+                            value: 'none',
+                            items: const [
                               DropdownMenuItem(
-                                value: 'none',
-                                child: Text('None'),
-                              ),
+                                  value: 'none', child: Text('None')),
                               DropdownMenuItem(
-                                value: 'shortest_time',
-                                child: Text('Shortest Time'),
-                              ),
+                                  value: 'shortest_time',
+                                  child: Text('Shortest Time')),
                               DropdownMenuItem(
-                                value: 'lowest_fare',
-                                child: Text('Lowest Fare'),
-                              ),
+                                  value: 'lowest_fare',
+                                  child: Text('Lowest Fare')),
                               DropdownMenuItem(
-                                value: 'fewest_transfers',
-                                child: Text('Fewest Transfers'),
-                              ),
+                                  value: 'fewest_transfers',
+                                  child: Text('Fewest Transfers')),
                             ],
-                            onChanged: (String? newValue) {},
+                            onChanged: (value) {},
                           ),
                         ),
                         const SizedBox(width: 16),
-
-                        // Budget TextField
                         Expanded(
                           flex: 1,
                           child: TextField(
@@ -220,13 +174,13 @@ class TravelHomePage extends StatelessWidget {
                             ],
                             decoration: InputDecoration(
                               labelText: 'Budget',
+                              prefixText: 'GHC ',
                               labelStyle: TextStyle(
                                 color: Color(0xFFD9D9D9),
                                 fontWeight: FontWeight.w200,
                                 fontFamily: 'Poppins',
                                 fontSize: 16,
                               ),
-                              prefixText: 'GHC ',
                               enabledBorder: OutlineInputBorder(
                                 borderSide:
                                     BorderSide(color: Color(0xFFD9D9D9)),
@@ -234,18 +188,6 @@ class TravelHomePage extends StatelessWidget {
                               focusedBorder: OutlineInputBorder(
                                 borderSide:
                                     BorderSide(color: Color(0xFFD9D9D9)),
-                              ),
-                              border: OutlineInputBorder(
-                                borderSide:
-                                    BorderSide(color: Color(0xFFD9D9D9)),
-                              ),
-                              errorBorder: OutlineInputBorder(
-                                borderSide:
-                                    BorderSide(color: Color(0xFFc32e31)),
-                              ),
-                              focusedErrorBorder: OutlineInputBorder(
-                                borderSide:
-                                    BorderSide(color: Color(0xFFC32E31)),
                               ),
                               contentPadding: EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 12),
@@ -257,12 +199,10 @@ class TravelHomePage extends StatelessWidget {
                               fontWeight: FontWeight.w400,
                             ),
                           ),
-                        )
+                        ),
                       ],
                     ),
                     const SizedBox(height: 20),
-
-                    // Search Button
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -292,15 +232,9 @@ class TravelHomePage extends StatelessWidget {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 24),
-                    // Divider
-                    const Divider(
-                      color: Color(0xFFD9D9D9),
-                    ),
+                    const Divider(color: Color(0xFFD9D9D9)),
                     const SizedBox(height: 16),
-
-                    // Explore Stations Section
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -326,21 +260,17 @@ class TravelHomePage extends StatelessWidget {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 12),
-                    // Station Cards
                     SizedBox(
                       height: 180,
                       child: ListView(
                         scrollDirection: Axis.horizontal,
-                        children: [
-                          // Shiashie Station Card
+                        children: const [
                           StationCard(
                             imagePath: 'assets/images/onboarding11.png',
                             stationName: 'Shiashie Station',
                           ),
-                          const SizedBox(width: 12),
-                          // Kaneshie Station Card
+                          SizedBox(width: 12),
                           StationCard(
                             imagePath: 'assets/images/onboarding8.jpg',
                             stationName: 'Kaneshie Station',
@@ -354,46 +284,6 @@ class TravelHomePage extends StatelessWidget {
             ],
           ),
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        selectedLabelStyle: TextStyle(
-          color: Color(0xFFC32E31),
-          fontWeight: FontWeight.w500,
-          fontSize: 12,
-          fontFamily: 'Poppins',
-        ),
-        unselectedLabelStyle: TextStyle(
-          color: Color(0xFFC32E31),
-          fontWeight: FontWeight.w500,
-          fontSize: 12,
-          fontFamily: 'Poppins',
-        ),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Color(0xFFC32E31),
-        unselectedItemColor: Color(0xFFD9D9D9),
-        currentIndex: 0,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.explore),
-            label: 'Explore',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.star),
-            label: 'Favourites',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.help),
-            label: 'Help',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
       ),
     );
   }

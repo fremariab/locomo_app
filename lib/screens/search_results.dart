@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:locomo_app/screens/nearest_stations.dart';
+
 
 class TravelResultsPage extends StatelessWidget {
   const TravelResultsPage({Key? key}) : super(key: key);
@@ -40,13 +42,13 @@ class TravelResultsPage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: Image.asset(
-                'assets/images/locomo_logo3.png',
-                width: 30,
-                height: 30,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Icon(Icons.error, size: 50);
-                },
-              ),
+              'assets/images/locomo_logo3.png',
+              width: 30,
+              height: 30,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(Icons.error, size: 50);
+              },
+            ),
           ),
         ],
       ),
@@ -85,55 +87,10 @@ class TravelResultsPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                
-                // // Stops Button
-                // Expanded(
-                //   child: Container(
-                //     height: 40,
-                //     decoration: BoxDecoration(
-                //       color: Colors.white,
-                //       borderRadius: BorderRadius.circular(4),
-                //       border: Border.all(color: const Color(0xFFC32E31)),
-                //     ),
-                //     child: const Center(
-                //       child: Text(
-                //         'Stops',
-                //         style: TextStyle(
-                //           color: Color(0xFFC32E31),
-                //           fontSize: 12,
-                //           fontWeight: FontWeight.w500,
-                //         ),
-                //       ),
-                //     ),
-                //   ),
-                // ),
-                // const SizedBox(width: 8),
-                
-                // // Departure Button
-                // Expanded(
-                //   child: Container(
-                //     height: 40,
-                //     decoration: BoxDecoration(
-                //       color: Colors.white,
-                //       borderRadius: BorderRadius.circular(4),
-                //       border: Border.all(color: const Color(0xFFC32E31)),
-                //     ),
-                //     child: const Center(
-                //       child: Text(
-                //         'Departure',
-                //         style: TextStyle(
-                //           color: Color(0xFFC32E31),
-                //           fontSize: 12,
-                //           fontWeight: FontWeight.w500,
-                //         ),
-                //       ),
-                //     ),
-                //   ),
-                // ),
               ],
             ),
           ),
-          
+
           // Recommended Label
           Container(
             width: double.infinity,
@@ -158,7 +115,7 @@ class TravelResultsPage extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Route Cards
           Expanded(
             child: ListView(
@@ -175,7 +132,7 @@ class TravelResultsPage extends StatelessWidget {
                   transferCount: 0,
                   price: 'GHS 5.50',
                 ),
-                
+
                 // Fastest Route Card
                 RouteCard(
                   label: 'Fastest',
@@ -187,7 +144,7 @@ class TravelResultsPage extends StatelessWidget {
                   transferCount: 1,
                   price: 'GHS 6.00',
                 ),
-                
+
                 // Third Route Card
                 RouteCard(
                   label: null,
@@ -299,7 +256,7 @@ class RouteCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          
+
           // Times row
           Row(
             children: [
@@ -311,7 +268,7 @@ class RouteCard extends StatelessWidget {
                   fontSize: 16,
                 ),
               ),
-              
+
               // Duration
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 12),
@@ -333,7 +290,7 @@ class RouteCard extends StatelessWidget {
                   ],
                 ),
               ),
-              
+
               // Arrival time
               Text(
                 arrivalTime,
@@ -342,9 +299,9 @@ class RouteCard extends StatelessWidget {
                   fontSize: 16,
                 ),
               ),
-              
+
               const Spacer(),
-              
+
               // Price
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -367,9 +324,9 @@ class RouteCard extends StatelessWidget {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           // Route information
           Row(
             children: [
@@ -387,9 +344,9 @@ class RouteCard extends StatelessWidget {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 6),
-          
+
           // Route details
           Row(
             children: [
@@ -407,9 +364,9 @@ class RouteCard extends StatelessWidget {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           // Transfers indicator
           if (transferCount > 0)
             Container(
