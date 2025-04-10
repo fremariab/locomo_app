@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-
-// Import separate screen files
 import 'screens/welcome_screen.dart';
 import 'screens/onboarding_screen1.dart';
 import 'screens/onboarding_screen2.dart';
 import 'screens/onboarding_screen3.dart';
 import 'screens/register.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
   runApp(const MyApp());
 }
 
