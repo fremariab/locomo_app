@@ -1,7 +1,7 @@
 import 'search_results.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:locomo_app/widgets/MainScaffold.dart';
+import 'package:locomo_app/widgets/MainScaffold.dart' as widgets;
 
 class TravelHomePage extends StatefulWidget {
   const TravelHomePage({Key? key}) : super(key: key);
@@ -15,7 +15,7 @@ class _TravelHomePageState extends State<TravelHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return MainScaffold(
+    return widgets.MainScaffold(
       currentIndex: 0,
       child: SafeArea(
         child: SingleChildScrollView(

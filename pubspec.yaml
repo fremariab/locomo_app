@@ -38,6 +38,10 @@ dependencies:
   firebase_core: ^2.16.0    # Check for the latest version on pub.dev
   firebase_auth: ^4.6.0     # Check for the latest version on pub.dev
   google_sign_in: ^6.1.0
+  cloud_firestore: ^4.8.3
+  url_launcher: ^6.2.5
+  flutter_contacts: ^1.1.9+2
+  permission_handler: ^11.3.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
