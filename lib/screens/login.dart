@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:locomo_app/screens/register.dart';
+import 'package:locomo_app/services/auth_service.dart';
 import 'search.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -11,6 +12,89 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
+  bool _isLoading = false;
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      _showMessage('Please fill in all fields');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final user = await _authService.signInWithEmail(email, password);
+      if (user != null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => TravelHomePage()),
+        );
+      } else {
+        _showMessage('Invalid email or password');
+      }
+    } catch (e) {
+      _showMessage('Login failed: ${e.toString()}');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loginWithGoogle() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final user = await _authService.signInWithGoogle();
+      if (user != null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => TravelHomePage()),
+        );
+      } else {
+        _showMessage('Google sign-in failed');
+      }
+    } catch (e) {
+      _showMessage('Google sign-in error: ${e.toString()}');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _forgotPassword() async {
+    final email = _emailController.text.trim();
+    
+    if (email.isEmpty) {
+      _showMessage('Please enter your email address');
+      return;
+    }
+
+    try {
+      final result = await _authService.resetPassword(email);
+      if (result) {
+        _showMessage('Password reset email sent to $email');
+      } else {
+        _showMessage('Failed to send password reset email');
+      }
+    } catch (e) {
+      _showMessage('Error: ${e.toString()}');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,9 +157,10 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const TextField(
+                  TextField(
+                    controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'Email',
                       labelStyle: TextStyle(
                         color: Color(0xFFD9D9D9),
@@ -101,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.black,
                       fontSize: 16,
                       fontFamily: 'Poppins',
@@ -111,40 +196,40 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
 
                   TextField(
+                    controller: _passwordController,
                     obscureText: _obscurePassword,
-                    keyboardType: TextInputType.emailAddress,
+                    keyboardType: TextInputType.visiblePassword,
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      labelStyle: TextStyle(
+                      labelStyle: const TextStyle(
                         color: Color(0xFFD9D9D9),
                         fontWeight: FontWeight.w200, // Semi-bold weight
                         fontFamily: 'Poppins',
                         fontSize: 16,
                       ),
-                      enabledBorder: OutlineInputBorder(
+                      enabledBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
                       ),
-                      focusedBorder: OutlineInputBorder(
+                      focusedBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
                       ),
-                      border: OutlineInputBorder(
+                      border: const OutlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
                       ),
-                      errorBorder: OutlineInputBorder(
+                      errorBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFFc32e31)),
                       ),
-                      focusedErrorBorder: OutlineInputBorder(
+                      focusedErrorBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFFC32E31)),
                       ),
                       contentPadding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
                               ? Icons.visibility_off
                               : Icons.visibility,
-                          color: Color(
-                              0xFFD9D9D9), // Added color to match the style
+                          color: const Color(0xFFD9D9D9),
                         ),
                         onPressed: () {
                           setState(() {
@@ -153,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         },
                       ),
                     ),
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.black,
                       fontSize: 16,
                       fontFamily: 'Poppins',
@@ -166,7 +251,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {},
+                      onPressed: _forgotPassword,
                       child: const Text(
                         'Forgot Password?',
                         style: TextStyle(
@@ -183,12 +268,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(
-                                  builder: (context) =>  TravelHomePage()),
-                            );
-                      },
+                      onPressed: _isLoading ? null : _login,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFC32E31),
                         shape: RoundedRectangleBorder(
@@ -197,18 +277,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         elevation: 0, // Removes shadow in default state
                         shadowColor:
                             Colors.transparent, // Ensures no shadow appears
-                        // Optional: Override hover/focus/pressed elevation
-                        surfaceTintColor: Colors.transparent, // Pre
+                        surfaceTintColor: Colors.transparent,
                       ),
-                      child: const Text(
-                        'Login',
-                        style: TextStyle(
-                          fontSize: 22.5,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: 'Poppins',
-                          color: Color(0xFFffffff),
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              'Login',
+                              style: TextStyle(
+                                fontSize: 22.5,
+                                fontWeight: FontWeight.w600,
+                                fontFamily: 'Poppins',
+                                color: Color(0xFFffffff),
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -242,7 +323,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: 220,
                       height: 50,
                       child: OutlinedButton(
-                        onPressed: () {},
+                        onPressed: _isLoading ? null : _loginWithGoogle,
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.grey, width: 1),
                           shape: RoundedRectangleBorder(
@@ -262,8 +343,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               'Google',
                               style: TextStyle(
                                 fontSize: 16,
-                                                            fontFamily: 'Poppins',
-
+                                fontFamily: 'Poppins',
                                 color: Colors.black,
                               ),
                             ),
@@ -283,8 +363,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: TextStyle(
                           fontSize: 16,
                           color: Color(0xFFD9D9D9),
-                                                      fontFamily: 'Poppins',
-
+                          fontFamily: 'Poppins',
                         ),
                       ),
                       GestureDetector(
@@ -300,8 +379,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFFC32E31),
-                                                                                  fontFamily: 'Poppins',
-
+                            fontFamily: 'Poppins',
                           ),
                         ),
                       ),

@@ -1,20 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
+import 'firebase_options.dart';
+
+// Screens
 import 'screens/welcome_screen.dart';
 import 'screens/onboarding_screen1.dart';
 import 'screens/onboarding_screen2.dart';
 import 'screens/onboarding_screen3.dart';
 import 'screens/register.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'screens/login.dart';
+import 'screens/user_profile.dart';
+import 'screens/forgot_password_screen.dart';
+import 'screens/account_details_screen.dart';
+import 'screens/saved_routes_screen.dart';
+import 'screens/search.dart';
 
-Future<void> main() async {
+// Services and Providers
+import 'services/auth_service.dart';
+import 'providers/auth_provider.dart';
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-await Firebase.initializeApp(
+  // ✅ Initialize Firebase
+  await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  
+
   runApp(const MyApp());
 }
 
@@ -23,18 +37,141 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Locomo',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFc32e31),
-          primary: const Color(0xFFc32e31),
+    return MultiProvider(
+      providers: [
+        // Add AuthProvider to manage authentication state
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
+      child: MaterialApp(
+        title: 'Locomo',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFFc32e31),
+            primary: const Color(0xFFc32e31),
+          ),
+          fontFamily: 'Poppins',
+          useMaterial3: true,
+          // Set common styles for AppBar
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color(0xFFc32e31),
+            foregroundColor: Colors.white,
+            elevation: 0,
+          ),
+          // Set common styles for ElevatedButtons
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFc32e31),
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
+          ),
         ),
-        fontFamily: 'Poppins',
-        useMaterial3: true,
+        // Setup routes for the app
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const SplashScreen(),
+          '/onboarding': (context) => const OnboardingScreen(),
+          '/login': (context) => const LoginScreen(),
+          '/register': (context) => const RegisterScreen(),
+          '/home': (context) => const TravelHomePage(),
+          '/profile': (context) => const UserProfileScreen(),
+          '/account-details': (context) => const AccountDetailsScreen(),
+          '/saved-routes': (context) => const SavedRoutesScreen(),
+          '/forgot-password': (context) => const ForgotPasswordScreen(),
+        },
       ),
-      home: const OnboardingScreen(),
+    );
+  }
+}
+
+// Splash Screen to check authentication state
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({Key? key}) : super(key: key);
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  final AuthService _authService = AuthService();
+  bool _checking = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthState();
+  }
+
+  Future<void> _checkAuthState() async {
+    await Future.delayed(const Duration(seconds: 2)); // Short delay for splash screen
+    
+    if (!mounted) return;
+    
+    final user = _authService.getCurrentUser();
+    setState(() {
+      _checking = false;
+    });
+    
+    if (user != null) {
+      // User is already logged in, go to home
+      Navigator.of(context).pushReplacementNamed('/home');
+    } else {
+      // User is not logged in, go to onboarding
+      Navigator.of(context).pushReplacementNamed('/onboarding');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFc32e31),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // App logo
+            Image.asset(
+              'assets/images/locomo_logo3.png',
+              width: 120,
+              height: 120,
+              errorBuilder: (context, error, stackTrace) => const Icon(
+                Icons.directions_bus_filled,
+                size: 120,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 20),
+            // App name
+            const Text(
+              'LocoMo',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 38,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+              ),
+            ),
+            const SizedBox(height: 8),
+            // App tagline
+            const Text(
+              'Your Travel Companion',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontFamily: 'Poppins',
+              ),
+            ),
+            const SizedBox(height: 40),
+            // Loading indicator
+            if (_checking)
+              const CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 3,
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -49,7 +186,7 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  bool _showWelcome = true; // Flag to control welcome screen visibility
+  bool _showWelcome = true;
 
   @override
   void dispose() {
@@ -66,13 +203,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ? WelcomeScreen(
                 onComplete: () {
                   setState(() {
-                    _showWelcome = false; // Hide welcome screen when completed
+                    _showWelcome = false;
                   });
                 },
               )
             : Column(
                 children: [
-                  // Only onboarding screens will be in PageView now
                   Expanded(
                     child: PageView(
                       controller: _pageController,
@@ -103,8 +239,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                   ),
                   Padding(
-                    padding:
-                        const EdgeInsets.only(bottom: 40, left: 40, right: 40),
+                    padding: const EdgeInsets.only(bottom: 40, left: 40, right: 40),
                     child: SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -118,7 +253,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           } else {
                             Navigator.of(context).pushReplacement(
                               MaterialPageRoute(
-                                  builder: (context) => const RegisterScreen()),
+                                builder: (context) => const RegisterScreen(),
+                              ),
                             );
                           }
                         },

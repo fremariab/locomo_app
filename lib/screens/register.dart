@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
-import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'login.dart';
+import '../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -11,8 +11,75 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _repeatPasswordController = TextEditingController();
+
   bool _obscurePassword = true;
   bool _obscureRepeatPassword = true;
+  bool _isLoading = false;
+
+  final AuthService _authService = AuthService();
+
+  void _showMessage(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _register() async {
+    final name = _fullNameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _repeatPasswordController.text;
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      _showMessage("Please fill in all fields.");
+      return;
+    }
+
+    if (password != confirmPassword) {
+      _showMessage("Passwords do not match.");
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await _authService.registerWithEmail(email, password, name);
+      final user = result['user'] as User?;
+      final firestoreSuccess = result['firestoreSuccess'] as bool;
+
+      if (user != null) {
+        if (!firestoreSuccess) {
+          await _authService.ensureUserInFirestore(user, name);
+          _showMessage("Registration completed. Some data synced late.");
+        } else {
+          _showMessage("Registration successful!");
+        }
+
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      } else {
+        _showMessage("Registration failed. Please try again.");
+      }
+    } on FirebaseAuthException catch (e) {
+      _showMessage("Auth error: ${e.message}");
+    } catch (e) {
+      _showMessage("Unexpected error: $e");
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _repeatPasswordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +90,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Stack(
               children: [
                 CustomPaint(
-                  size: Size(double.infinity, 225),
+                  size: const Size(double.infinity, 225),
                   painter: RedCurvePainter(),
                 ),
                 Container(
@@ -31,17 +98,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   padding: const EdgeInsets.fromLTRB(32, 40, 32, 32),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 10),
+                    children: const [
+                      SizedBox(height: 10),
                       Center(
-                        child: Image.asset(
-                          'assets/images/locomo_logo3.png',
+                        child: Image(
+                          image: AssetImage('assets/images/locomo_logo3.png'),
                           width: 50,
                           height: 50,
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      const Text(
+                      SizedBox(height: 10),
+                      Text(
                         'Register',
                         style: TextStyle(
                           fontSize: 40,
@@ -50,8 +117,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 3),
-                      const Text(
+                      SizedBox(height: 3),
+                      Text(
                         'Create your account',
                         style: TextStyle(
                           fontSize: 20,
@@ -72,223 +139,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 16),
-
-                  const TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Full Name',
-                      labelStyle: TextStyle(
-                        color: Color(0xFFD9D9D9),
-                        fontWeight: FontWeight.w200,
-                        fontFamily: 'Poppins',
-                        fontSize: 16,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-                      ),
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-                      ),
-                      errorBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFc32e31)),
-                      ),
-                      focusedErrorBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFC32E31)),
-                      ),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-
+                  _buildTextField(_fullNameController, 'Full Name'),
                   const SizedBox(height: 16),
-
-                  const TextField(
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: 'Email',
-                      labelStyle: TextStyle(
-                        color: Color(0xFFD9D9D9),
-                        fontWeight: FontWeight.w200,
-                        fontFamily: 'Poppins',
-                        fontSize: 16,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-                      ),
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-                      ),
-                      errorBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFc32e31)),
-                      ),
-                      focusedErrorBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFC32E31)),
-                      ),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
+                  _buildTextField(_emailController, 'Email', isEmail: true),
                   const SizedBox(height: 16),
-
-                  TextField(
-                    obscureText: _obscurePassword,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      labelStyle: TextStyle(
-                        color: Color(0xFFD9D9D9),
-                        fontWeight: FontWeight.w200, // Semi-bold weight
-                        fontFamily: 'Poppins',
-                        fontSize: 16,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-                      ),
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-                      ),
-                      errorBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFc32e31)),
-                      ),
-                      focusedErrorBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFC32E31)),
-                      ),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Color(
-                              0xFFD9D9D9), // Added color to match the style
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
-                    ),
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-
+                  _buildPasswordField(_passwordController, 'Password', _obscurePassword, () {
+                    setState(() => _obscurePassword = !_obscurePassword);
+                  }),
                   const SizedBox(height: 16),
-
-                  TextField(
-                    obscureText:
-                        _obscureRepeatPassword, // Controls password visibility
-                    keyboardType:
-                        TextInputType.text, // Changed to text (not email)
-                    decoration: InputDecoration(
-                      labelText: 'Repeat Password', // Updated label
-                      labelStyle: TextStyle(
-                        color: Color(0xFFD9D9D9),
-                        fontWeight: FontWeight.w200,
-                        fontFamily: 'Poppins',
-                        fontSize: 16,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-                      ),
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-                      ),
-                      errorBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFc32e31)),
-                      ),
-                      focusedErrorBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFC32E31)),
-                      ),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscureRepeatPassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Color(0xFFD9D9D9), // Matches the label color
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscureRepeatPassword = !_obscureRepeatPassword;
-                          });
-                        },
-                      ),
-                    ),
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
+                  _buildPasswordField(_repeatPasswordController, 'Repeat Password', _obscureRepeatPassword, () {
+                    setState(() => _obscureRepeatPassword = !_obscureRepeatPassword);
+                  }),
                   const SizedBox(height: 48),
-
-                  // Register button
                   SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: () {
-                         Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(
-                                  builder: (context) => const LoginScreen()),
-                            );
-                      },
+                      onPressed: _isLoading ? null : _register,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFC32E31),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        elevation: 0, // Removes shadow in default state
-                        shadowColor:
-                            Colors.transparent, // Ensures no shadow appears
-                        // Optional: Override hover/focus/pressed elevation
-                        surfaceTintColor: Colors.transparent, // Pre
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                        elevation: 0,
                       ),
-                      child: const Text(
-                        'Register',
-                        style: TextStyle(
-                          fontSize: 22.5,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: 'Poppins',
-                          color: Color(0xFFffffff),
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5)
+                          : const Text(
+                              'Register',
+                              style: TextStyle(
+                                fontSize: 22.5,
+                                fontWeight: FontWeight.w600,
+                                fontFamily: 'Poppins',
+                                color: Color(0xFFFFFFFF),
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 24),
-
-                  // Login link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -304,9 +190,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       GestureDetector(
                         onTap: () {
                           Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(
-                                  builder: (context) => const LoginScreen()),
-                            );
+                            MaterialPageRoute(builder: (_) => const LoginScreen()),
+                          );
                         },
                         child: const Text(
                           'Login',
@@ -329,443 +214,87 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
+
+  Widget _buildTextField(TextEditingController controller, String label, {bool isEmail = false}) {
+    return TextField(
+      controller: controller,
+      keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
+      decoration: _inputDecoration(label),
+      style: _inputTextStyle(),
+    );
+  }
+
+  Widget _buildPasswordField(TextEditingController controller, String label, bool obscure, VoidCallback toggle) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      decoration: _inputDecoration(label).copyWith(
+        suffixIcon: IconButton(
+          icon: Icon(obscure ? Icons.visibility_off : Icons.visibility, color: const Color(0xFFD9D9D9)),
+          onPressed: toggle,
+        ),
+      ),
+      style: _inputTextStyle(),
+    );
+  }
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(
+        color: Color(0xFFD9D9D9),
+        fontWeight: FontWeight.w200,
+        fontFamily: 'Poppins',
+        fontSize: 16,
+      ),
+      enabledBorder: const OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFD9D9D9))),
+      focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFD9D9D9))),
+      errorBorder: const OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFc32e31))),
+      focusedErrorBorder: const OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFC32E31))),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    );
+  }
+
+  TextStyle _inputTextStyle() {
+    return const TextStyle(
+      color: Colors.black,
+      fontSize: 16,
+      fontFamily: 'Poppins',
+      fontWeight: FontWeight.w400,
+    );
+  }
 }
 
 class RedCurvePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    // Base color
     final Paint basePaint = Paint()
       ..color = const Color(0xFFB22A2D)
       ..style = PaintingStyle.fill;
-
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), basePaint);
 
-    // Lighter curved shape
     final Paint lightCurvePaint = Paint()
       ..color = const Color(0xFFC32E31)
       ..style = PaintingStyle.fill;
-
     final Path lightCurvePath = Path();
     lightCurvePath.moveTo(0, size.height * 0.6);
-    lightCurvePath.quadraticBezierTo(
-        size.width * 0.7, size.height * 0.2, size.width, size.height * 0.3);
+    lightCurvePath.quadraticBezierTo(size.width * 0.7, size.height * 0.2, size.width, size.height * 0.3);
     lightCurvePath.lineTo(size.width, 0);
     lightCurvePath.lineTo(0, 0);
     lightCurvePath.close();
-
     canvas.drawPath(lightCurvePath, lightCurvePaint);
 
-    // Darker curved shape
     final Paint darkCurvePaint = Paint()
       ..color = const Color(0xFF9E2528)
       ..style = PaintingStyle.fill;
-
     final Path darkCurvePath = Path();
     darkCurvePath.moveTo(size.width * 0.5, size.height);
-    darkCurvePath.quadraticBezierTo(
-        size.width * 0.8, size.height * 0.7, size.width, size.height * 0.8);
+    darkCurvePath.quadraticBezierTo(size.width * 0.8, size.height * 0.7, size.width, size.height * 0.8);
     darkCurvePath.lineTo(size.width, size.height);
     darkCurvePath.close();
-
     canvas.drawPath(darkCurvePath, darkCurvePaint);
   }
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
-// import 'package:flutter/material.dart';
-// import 'dart:ui';
-// import 'package:flutter/services.dart';
-// import 'login.dart';
-// import '../services/auth_service.dart'; // Ensure this file contains registerWithEmail
-
-// class RegisterScreen extends StatefulWidget {
-//   const RegisterScreen({Key? key}) : super(key: key);
-
-//   @override
-//   State<RegisterScreen> createState() => _RegisterScreenState();
-// }
-
-// class _RegisterScreenState extends State<RegisterScreen> {
-//   bool _obscurePassword = true;
-//   bool _obscureRepeatPassword = true;
-
-//   // Create controllers for text fields
-//   final TextEditingController _fullNameController = TextEditingController();
-//   final TextEditingController _emailController    = TextEditingController();
-//   final TextEditingController _passwordController = TextEditingController();
-//   final TextEditingController _repeatPasswordController = TextEditingController();
-
-//   @override
-//   void dispose() {
-//     _fullNameController.dispose();
-//     _emailController.dispose();
-//     _passwordController.dispose();
-//     _repeatPasswordController.dispose();
-//     super.dispose();
-//   }
-
-//   // A helper method to show SnackBar messages
-//   void _showMessage(String message) {
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       SnackBar(content: Text(message)),
-//     );
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       body: SingleChildScrollView(
-//         child: Column(
-//           children: [
-//             Stack(
-//               children: [
-//                 CustomPaint(
-//                   size: const Size(double.infinity, 225),
-//                   painter: RedCurvePainter(),
-//                 ),
-//                 Container(
-//                   width: double.infinity,
-//                   padding: const EdgeInsets.fromLTRB(32, 40, 32, 32),
-//                   child: Column(
-//                     crossAxisAlignment: CrossAxisAlignment.start,
-//                     children: [
-//                       const SizedBox(height: 10),
-//                       Center(
-//                         child: Image.asset(
-//                           'assets/images/locomo_logo3.png',
-//                           width: 50,
-//                           height: 50,
-//                         ),
-//                       ),
-//                       const SizedBox(height: 10),
-//                       const Text(
-//                         'Register',
-//                         style: TextStyle(
-//                           fontSize: 40,
-//                           fontFamily: 'Poppins',
-//                           fontWeight: FontWeight.bold,
-//                           color: Colors.white,
-//                         ),
-//                       ),
-//                       const SizedBox(height: 3),
-//                       const Text(
-//                         'Create your account',
-//                         style: TextStyle(
-//                           fontSize: 20,
-//                           fontFamily: 'Poppins',
-//                           fontWeight: FontWeight.w400,
-//                           color: Colors.white,
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-//               ],
-//             ),
-//             const SizedBox(height: 22),
-//             Padding(
-//               padding: const EdgeInsets.symmetric(horizontal: 24),
-//               child: Column(
-//                 crossAxisAlignment: CrossAxisAlignment.start,
-//                 children: [
-//                   const SizedBox(height: 16),
-//                   // Full Name TextField (removed const to use controller)
-//                   TextField(
-//                     controller: _fullNameController,
-//                     decoration: const InputDecoration(
-//                       labelText: 'Full Name',
-//                       labelStyle: TextStyle(
-//                         color: Color(0xFFD9D9D9),
-//                         fontWeight: FontWeight.w200,
-//                         fontFamily: 'Poppins',
-//                         fontSize: 16,
-//                       ),
-//                       enabledBorder: OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-//                       ),
-//                       focusedBorder: OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-//                       ),
-//                       border: OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-//                       ),
-//                       errorBorder: OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFc32e31)),
-//                       ),
-//                       focusedErrorBorder: OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFC32E31)),
-//                       ),
-//                       contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-//                     ),
-//                     style: const TextStyle(
-//                       color: Colors.black,
-//                       fontSize: 16,
-//                       fontFamily: 'Poppins',
-//                       fontWeight: FontWeight.w400,
-//                     ),
-//                   ),
-//                   const SizedBox(height: 16),
-//                   // Email TextField
-//                   TextField(
-//                     controller: _emailController,
-//                     keyboardType: TextInputType.emailAddress,
-//                     decoration: const InputDecoration(
-//                       labelText: 'Email',
-//                       labelStyle: TextStyle(
-//                         color: Color(0xFFD9D9D9),
-//                         fontWeight: FontWeight.w200,
-//                         fontFamily: 'Poppins',
-//                         fontSize: 16,
-//                       ),
-//                       enabledBorder: OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-//                       ),
-//                       focusedBorder: OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-//                       ),
-//                       border: OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-//                       ),
-//                       errorBorder: OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFc32e31)),
-//                       ),
-//                       focusedErrorBorder: OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFC32E31)),
-//                       ),
-//                       contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-//                     ),
-//                     style: const TextStyle(
-//                       color: Colors.black,
-//                       fontSize: 16,
-//                       fontFamily: 'Poppins',
-//                       fontWeight: FontWeight.w400,
-//                     ),
-//                   ),
-//                   const SizedBox(height: 16),
-//                   // Password TextField
-//                   TextField(
-//                     controller: _passwordController,
-//                     obscureText: _obscurePassword,
-//                     decoration: InputDecoration(
-//                       labelText: 'Password',
-//                       labelStyle: const TextStyle(
-//                         color: Color(0xFFD9D9D9),
-//                         fontWeight: FontWeight.w200,
-//                         fontFamily: 'Poppins',
-//                         fontSize: 16,
-//                       ),
-//                       enabledBorder: const OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-//                       ),
-//                       focusedBorder: const OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-//                       ),
-//                       border: const OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-//                       ),
-//                       errorBorder: const OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFc32e31)),
-//                       ),
-//                       focusedErrorBorder: const OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFC32E31)),
-//                       ),
-//                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-//                       suffixIcon: IconButton(
-//                         icon: Icon(
-//                           _obscurePassword ? Icons.visibility_off : Icons.visibility,
-//                           color: const Color(0xFFD9D9D9),
-//                         ),
-//                         onPressed: () {
-//                           setState(() {
-//                             _obscurePassword = !_obscurePassword;
-//                           });
-//                         },
-//                       ),
-//                     ),
-//                     style: const TextStyle(
-//                       color: Colors.black,
-//                       fontSize: 16,
-//                       fontFamily: 'Poppins',
-//                       fontWeight: FontWeight.w400,
-//                     ),
-//                   ),
-//                   const SizedBox(height: 16),
-//                   // Repeat Password TextField
-//                   TextField(
-//                     controller: _repeatPasswordController,
-//                     obscureText: _obscureRepeatPassword,
-//                     decoration: InputDecoration(
-//                       labelText: 'Repeat Password',
-//                       labelStyle: const TextStyle(
-//                         color: Color(0xFFD9D9D9),
-//                         fontWeight: FontWeight.w200,
-//                         fontFamily: 'Poppins',
-//                         fontSize: 16,
-//                       ),
-//                       enabledBorder: const OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-//                       ),
-//                       focusedBorder: const OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-//                       ),
-//                       border: const OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
-//                       ),
-//                       errorBorder: const OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFc32e31)),
-//                       ),
-//                       focusedErrorBorder: const OutlineInputBorder(
-//                         borderSide: BorderSide(color: Color(0xFFC32E31)),
-//                       ),
-//                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-//                       suffixIcon: IconButton(
-//                         icon: Icon(
-//                           _obscureRepeatPassword ? Icons.visibility_off : Icons.visibility,
-//                           color: const Color(0xFFD9D9D9),
-//                         ),
-//                         onPressed: () {
-//                           setState(() {
-//                             _obscureRepeatPassword = !_obscureRepeatPassword;
-//                           });
-//                         },
-//                       ),
-//                     ),
-//                     style: const TextStyle(
-//                       color: Colors.black,
-//                       fontSize: 16,
-//                       fontFamily: 'Poppins',
-//                       fontWeight: FontWeight.w400,
-//                     ),
-//                   ),
-//                   const SizedBox(height: 48),
-//                   // Register button
-//                   SizedBox(
-//                     width: double.infinity,
-//                     height: 56,
-//                     child: ElevatedButton(
-//                       onPressed: () async {
-//                         // Check if passwords match
-//                         if (_passwordController.text != _repeatPasswordController.text) {
-//                           _showMessage("Passwords do not match.");
-//                           return;
-//                         }
-//                         // Call the registration function
-//                         var user = await AuthService().registerWithEmail(
-//                           _emailController.text,
-//                           _passwordController.text,
-//                           _fullNameController.text,
-//                         );
-//                         if (user != null) {
-//                           // Registration successful: navigate to home or login screen
-//                           Navigator.of(context).pushReplacement(
-//                             MaterialPageRoute(
-//                               builder: (context) => const LoginScreen(),
-//                             ),
-//                           );
-//                         } else {
-//                           // Registration failed: show error message
-//                           _showMessage("Registration failed. Please try again.");
-//                         }
-//                       },
-//                       style: ElevatedButton.styleFrom(
-//                         backgroundColor: const Color(0xFFC32E31),
-//                         shape: RoundedRectangleBorder(
-//                           borderRadius: BorderRadius.circular(5),
-//                         ),
-//                         elevation: 0,
-//                         shadowColor: Colors.transparent,
-//                         surfaceTintColor: Colors.transparent,
-//                       ),
-//                       child: const Text(
-//                         'Register',
-//                         style: TextStyle(
-//                           fontSize: 22.5,
-//                           fontWeight: FontWeight.w600,
-//                           fontFamily: 'Poppins',
-//                           color: Color(0xFFffffff),
-//                         ),
-//                       ),
-//                     ),
-//                   ),
-//                   const SizedBox(height: 24),
-//                   // Login link
-//                   Row(
-//                     mainAxisAlignment: MainAxisAlignment.center,
-//                     children: [
-//                       const Text(
-//                         'Have an account? ',
-//                         style: TextStyle(
-//                           fontSize: 16,
-//                           color: Color(0xFFD9D9D9),
-//                           fontWeight: FontWeight.w300,
-//                           fontFamily: 'Poppins',
-//                         ),
-//                       ),
-//                       GestureDetector(
-//                         onTap: () {
-//                           Navigator.of(context).pushReplacement(
-//                             MaterialPageRoute(
-//                               builder: (context) => const LoginScreen(),
-//                             ),
-//                           );
-//                         },
-//                         child: const Text(
-//                           'Login',
-//                           style: TextStyle(
-//                             fontSize: 16,
-//                             fontWeight: FontWeight.w300,
-//                             fontFamily: 'Poppins',
-//                             color: Color(0xFFC32E31),
-//                           ),
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//                   const SizedBox(height: 32),
-//                 ],
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// class RedCurvePainter extends CustomPainter {
-//   @override
-//   void paint(Canvas canvas, Size size) {
-//     final Paint basePaint = Paint()
-//       ..color = const Color(0xFFB22A2D)
-//       ..style = PaintingStyle.fill;
-//     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), basePaint);
-
-//     final Paint lightCurvePaint = Paint()
-//       ..color = const Color(0xFFC32E31)
-//       ..style = PaintingStyle.fill;
-//     final Path lightCurvePath = Path();
-//     lightCurvePath.moveTo(0, size.height * 0.6);
-//     lightCurvePath.quadraticBezierTo(
-//         size.width * 0.7, size.height * 0.2, size.width, size.height * 0.3);
-//     lightCurvePath.lineTo(size.width, 0);
-//     lightCurvePath.lineTo(0, 0);
-//     lightCurvePath.close();
-//     canvas.drawPath(lightCurvePath, lightCurvePaint);
-
-//     final Paint darkCurvePaint = Paint()
-//       ..color = const Color(0xFF9E2528)
-//       ..style = PaintingStyle.fill;
-//     final Path darkCurvePath = Path();
-//     darkCurvePath.moveTo(size.width * 0.5, size.height);
-//     darkCurvePath.quadraticBezierTo(
-//         size.width * 0.8, size.height * 0.7, size.width, size.height * 0.8);
-//     darkCurvePath.lineTo(size.width, size.height);
-//     darkCurvePath.close();
-//     canvas.drawPath(darkCurvePath, darkCurvePaint);
-//   }
-
-//   @override
-//   bool shouldRepaint(CustomPainter oldDelegate) => false;
-// }

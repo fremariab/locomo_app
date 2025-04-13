@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/auth_service.dart';
+import 'package:flutter/material.dart';
+import 'package:locomo_app/services/auth_service.dart';
+import 'package:locomo_app/services/user_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
-  
+  final UserProfileService _userService = UserProfileService();
   User? _user;
   bool _isLoading = true;
 
@@ -23,9 +24,6 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    // Get current user
-    _user = _authService.getCurrentUser();
-    
     // Listen to auth state changes
     _authService.authStateChanges.listen((User? user) {
       _user = user;
@@ -34,12 +32,22 @@ class AuthProvider extends ChangeNotifier {
     });
   }
 
-  // Register with email and password
-  Future<Map<String, dynamic>> register(String email, String password, String fullName) async {
+  // Sign up with email and password
+  Future<User?> signUp(String email, String password, String displayName) async {
     try {
-      final result = await _authService.registerWithEmail(email, password, fullName);
-      notifyListeners();
-      return result;
+      final userCredential = await _authService.signUpWithEmailAndPassword(email, password);
+      
+      // Update display name
+      await _authService.updateDisplayName(displayName);
+      
+      // Create user profile in Firestore
+      await _userService.createUserProfile(
+        userCredential.user!.uid,
+        email,
+        displayName: displayName,
+      );
+      
+      return userCredential.user;
     } catch (e) {
       rethrow;
     }
@@ -48,20 +56,8 @@ class AuthProvider extends ChangeNotifier {
   // Sign in with email and password
   Future<User?> signIn(String email, String password) async {
     try {
-      final user = await _authService.signInWithEmail(email, password);
-      notifyListeners();
-      return user;
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  // Sign in with Google
-  Future<User?> signInWithGoogle() async {
-    try {
-      final user = await _authService.signInWithGoogle();
-      notifyListeners();
-      return user;
+      final userCredential = await _authService.signInWithEmailAndPassword(email, password);
+      return userCredential.user;
     } catch (e) {
       rethrow;
     }
@@ -71,27 +67,70 @@ class AuthProvider extends ChangeNotifier {
   Future<void> signOut() async {
     try {
       await _authService.signOut();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Send password reset email
+  Future<void> resetPassword(String email) async {
+    try {
+      await _authService.sendPasswordResetEmail(email);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Update user profile
+  Future<void> updateUserDisplayName(String displayName) async {
+    try {
+      await _authService.updateDisplayName(displayName);
+      if (_user != null) {
+        await _userService.updateUserProfile(_user!.uid, {
+          'fullName': displayName,
+        });
+      }
       notifyListeners();
     } catch (e) {
       rethrow;
     }
   }
 
-  // Reset password
-  Future<bool> resetPassword(String email) async {
+  // Update user email
+  Future<void> updateUserEmail(String email) async {
     try {
-      return await _authService.resetPassword(email);
+      await _authService.updateEmail(email);
+      if (_user != null) {
+        await _userService.updateUserProfile(_user!.uid, {
+          'email': email,
+        });
+      }
+      notifyListeners();
     } catch (e) {
       rethrow;
     }
   }
 
-  // Delete account
-  Future<bool> deleteAccount() async {
+  // Update user password
+  Future<void> updateUserPassword(String password) async {
     try {
-      final result = await _authService.deleteAccount();
-      notifyListeners();
-      return result;
+      await _authService.updatePassword(password);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Delete user account
+  Future<void> deleteAccount() async {
+    try {
+      if (_user != null) {
+        // Delete user data from Firestore
+        // Note: This should be handled with Firebase Cloud Functions in production
+        // to ensure data is deleted even if client operation fails
+        
+        // Delete the auth account
+        await _authService.deleteAccount();
+      }
     } catch (e) {
       rethrow;
     }
