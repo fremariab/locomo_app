@@ -1,11 +1,15 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:locomo_app/models/user_profile.dart';
 
 class UserProfileService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  
+  // Your Imgur client ID
+  final String _imgurClientId = '6d6de4859cac130';
 
   // Get user profile from Firestore
   Future<UserProfile?> getUserProfile(String userId) async {
@@ -22,7 +26,7 @@ class UserProfileService {
     }
   }
 
-  // Create user profile
+  // Create user profile - keep as is
   Future<void> createUserProfile(String uid, String email, {String? displayName}) async {
     try {
       await _firestore.collection('users').doc(uid).set({
@@ -31,8 +35,8 @@ class UserProfileService {
         'fullName': displayName ?? 'User',
         'createdAt': FieldValue.serverTimestamp(),
         'country': 'Ghana',
-        'language': 'English',
-        'appearance': 'Light',
+   /*      'language': 'English',
+        'appearance': 'Light', */
         'profileImageUrl': null,
         'authProvider': 'email',
       });
@@ -42,7 +46,7 @@ class UserProfileService {
     }
   }
 
-  // Update user profile
+  // Update user profile - keep as is
   Future<bool> updateUserProfile(String userId, Map<String, dynamic> data) async {
     try {
       await _firestore.collection('users').doc(userId).update(data);
@@ -53,41 +57,72 @@ class UserProfileService {
     }
   }
 
-  // Upload profile image
+  // Upload profile image - changed to use Imgur
   Future<String?> uploadProfileImage(String userId, File imageFile) async {
     try {
-      final ref = _storage.ref().child('profile_images').child('$userId.jpg');
+      // Create a multipart request for Imgur
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://api.imgur.com/3/image'),
+      );
       
-      // Upload file
-      await ref.putFile(imageFile);
+      // Add Imgur client ID header
+      request.headers['Authorization'] = 'Client-ID $_imgurClientId';
       
-      // Get download URL
-      final downloadUrl = await ref.getDownloadURL();
+      // Prepare the file for upload
+      final fileBytes = await imageFile.readAsBytes();
+      final fileExtension = imageFile.path.split('.').last.toLowerCase();
+      final mimeType = 'image/$fileExtension';
       
-      // Update user profile with new image URL
-      await updateUserProfile(userId, {'profileImageUrl': downloadUrl});
+      // Add the file to the request
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'image',
+          fileBytes,
+          filename: 'profile_$userId.$fileExtension',
+          contentType: MediaType.parse(mimeType),
+        ),
+      );
       
-      return downloadUrl;
+      // Send the request
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      if (response.statusCode == 200) {
+        // Extract image URL from response
+        final jsonData = json.decode(response.body);
+        final imageUrl = jsonData['data']['link'];
+        
+        // Update user profile with the new URL in Firestore
+        await updateUserProfile(userId, {'profileImageUrl': imageUrl});
+        
+        return imageUrl;
+      } else {
+        print('❌ Upload profile image error: ${response.body}');
+      }
+      
+      return null;
     } catch (e) {
       print('❌ Upload profile image error: $e');
       return null;
     }
   }
 
+  // The rest of your methods remain unchanged
   // Update country
   Future<bool> updateCountry(String userId, String country) async {
     return updateUserProfile(userId, {'country': country});
   }
 
   // Update language
-  Future<bool> updateLanguage(String userId, String language) async {
+/*   Future<bool> updateLanguage(String userId, String language) async {
     return updateUserProfile(userId, {'language': language});
   }
-
+ */
   // Update appearance
-  Future<bool> updateAppearance(String userId, String appearance) async {
+/*   Future<bool> updateAppearance(String userId, String appearance) async {
     return updateUserProfile(userId, {'appearance': appearance});
-  }
+  } */
 
   // Update default search date
   Future<bool> updateDefaultSearchDate(String userId, DateTime date) async {
