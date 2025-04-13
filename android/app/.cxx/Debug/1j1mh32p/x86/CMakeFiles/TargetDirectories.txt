@@ -1,0 +1,2 @@
+/Users/charlesopokuamankwah/Downloads/Mobile_App/Loco_F/locomo_app/android/app/.cxx/Debug/1j1mh32p/x86/CMakeFiles/edit_cache.dir
+/Users/charlesopokuamankwah/Downloads/Mobile_App/Loco_F/locomo_app/android/app/.cxx/Debug/1j1mh32p/x86/CMakeFiles/rebuild_cache.dir
