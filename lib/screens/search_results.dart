@@ -158,14 +158,22 @@ class RouteCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(width: 12),
-
-                  // 📲 SHARE ICON
                   GestureDetector(
                     onTap: () async {
+                      // Ask user to pick a contact from their list
                       final phone = await pickContactFromList(context);
+
                       if (phone != null) {
-                        final msg =
-                            "🚐 Route: $route\nDetails: $routeDetails\nFare: $price";
+                        // Build SMS content with full route information
+                        final msg = "Trotro Route Info:\n"
+                            "Route: $route\n"
+                            "Details: $routeDetails\n"
+                            "Fare: $price\n"
+                            "Departure: $departureTime\n"
+                            "Arrival: $arrivalTime\n"
+                            "Duration: $duration";
+
+                        // Launch SMS app with prefilled message
                         await _shareRouteViaSMS(msg, phone);
                       }
                     },
@@ -182,33 +190,54 @@ class RouteCard extends StatelessWidget {
   }
 
   Future<String?> pickContactFromList(BuildContext context) async {
-    if (!await FlutterContacts.requestPermission()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Permission denied")),
-      );
-      return null;
+    // Ensure contact permission is granted before proceeding
+    final status = await Permission.contacts.status;
+    if (!status.isGranted) {
+      final result = await Permission.contacts.request();
+      if (!result.isGranted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Contact permission denied")),
+        );
+        return null;
+      }
     }
 
+    // Load contacts with phone numbers included
     final contacts = await FlutterContacts.getContacts(withProperties: true);
 
+    // Show contacts in a scrollable bottom sheet for selection
     return showModalBottomSheet<String>(
       context: context,
       builder: (context) {
-        return ListView.builder(
-          itemCount: contacts.length,
-          itemBuilder: (context, index) {
-            final contact = contacts[index];
-            final phone =
-                contact.phones.isNotEmpty ? contact.phones.first.number : null;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text("Select a contact to share route with",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: contacts.length,
+                itemBuilder: (context, index) {
+                  final contact = contacts[index];
+                  final phone = contact.phones.isNotEmpty
+                      ? contact.phones.first.number
+                      : null;
 
-            return ListTile(
-              title: Text(contact.displayName),
-              subtitle: phone != null ? Text(phone) : const Text("No number"),
-              onTap: () {
-                Navigator.pop(context, phone);
-              },
-            );
-          },
+                  return ListTile(
+                    title: Text(contact.displayName),
+                    subtitle:
+                        phone != null ? Text(phone) : const Text("No number"),
+                    onTap: () {
+                      Navigator.pop(context, phone);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         );
       },
     );
@@ -241,12 +270,14 @@ Future<String?> pickContactPhoneNumber(BuildContext context) async {
 }
 
 Future<void> _shareRouteViaSMS(String message, String phoneNumber) async {
+  // Construct SMS URI with prefilled body
   final Uri smsUri = Uri(
     scheme: 'sms',
     path: phoneNumber,
     queryParameters: {'body': message},
   );
 
+  // Open the device's SMS app
   if (await canLaunchUrl(smsUri)) {
     await launchUrl(smsUri);
   } else {
