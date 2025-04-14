@@ -96,15 +96,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _updateCountry() async {
     final countries = [
-      'Ghana',
-      'Nigeria',
-      'Kenya',
-      'South Africa',
-      'Ethiopia',
-      'Tanzania',
-      'Uganda',
-      'Rwanda',
-      'Other'
+      'Ghana'
     ];
 
     final selectedCountry = await showDialog<String>(
@@ -134,7 +126,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  Future<void> _updateLanguage() async {
+/*   Future<void> _updateLanguage() async {
     final languages = ['English', 'French', 'Swahili', 'Arabic', 'Portuguese', 'Amharic'];
 
     final selectedLanguage = await showDialog<String>(
@@ -162,9 +154,9 @@ class UserProfileScreenState extends State<UserProfileScreen> {
         }
       }
     }
-  }
+  } */
 
-  Future<void> _updateAppearance() async {
+/*   Future<void> _updateAppearance() async {
     final appearances = ['Light', 'Dark', 'System'];
 
     final selectedAppearance = await showDialog<String>(
@@ -193,7 +185,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
       }
     }
   }
-
+ */
   Future<void> _updateDefaultSearchDate() async {
     final initialDate = _userProfile?.defaultSearchDate ?? DateTime.now();
     final selectedDate = await showDatePicker(
@@ -385,13 +377,13 @@ class UserProfileScreenState extends State<UserProfileScreen> {
                                   Navigator.pushNamed(context, '/saved-routes');
                                 },
                               ),
-                              _buildSettingsItem(
+/*                               _buildSettingsItem(
                                 icon: Icons.language,
                                 title: 'Language',
                                 value: _userProfile?.language ?? 'English',
                                 showChevron: true,
                                 onTap: _updateLanguage,
-                              ),
+                              ), */
                               _buildSettingsItem(
                                 icon: Icons.public,
                                 title: 'Country of Residence',
@@ -408,13 +400,13 @@ class UserProfileScreenState extends State<UserProfileScreen> {
                                 showChevron: true,
                                 onTap: _updateDefaultSearchDate,
                               ),
-                              _buildSettingsItem(
+/*                               _buildSettingsItem(
                                 icon: Icons.brightness_6_outlined,
                                 title: 'Appearance',
                                 value: _userProfile?.appearance ?? 'Light',
                                 showChevron: true,
                                 onTap: _updateAppearance,
-                              ),
+                              ), */
 
                               // Sign Out
                               InkWell(
