@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:locomo_app/screens/register.dart';
 import 'package:locomo_app/services/auth_service.dart';
 import 'search.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -48,29 +49,35 @@ class _LoginScreenState extends State<LoginScreen> {
           MaterialPageRoute(builder: (context) => TravelHomePage()),
         );
       } else {
-        _showMessage('Invalid email or password');
+        // This shouldn't happen anymore since errors are thrown, not returned as null
+        _showMessage('Login failed. Please try again.');
+      }
+    } on FirebaseAuthException catch (e) {
+      // Handle Firebase Auth specific errors
+      switch (e.code) {
+        case 'user-not-found':
+        case 'wrong-password':
+          _showMessage('Invalid email or password');
+          break;
+        case 'user-disabled':
+          _showMessage('This account has been disabled');
+          break;
+        case 'too-many-requests':
+          _showMessage('Too many failed login attempts. Please try again later');
+          break;
+        case 'network-request-failed':
+          _showMessage('No internet connection. Please check your network and try again.');
+          break;
+        default:
+          _showMessage('Login error: ${e.message}');
       }
     } catch (e) {
-      _showMessage('Login failed: ${e.toString()}');
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _loginWithGoogle() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final user = await _authService.signInWithGoogle();
-      if (user != null) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => TravelHomePage()),
-        );
+      // Handle general errors including network issues
+      if (e.toString().contains('No internet connection')) {
+        _showMessage(e.toString());
       } else {
-        _showMessage('Google sign-in failed');
+        _showMessage('Login failed: ${e.toString()}');
       }
-    } catch (e) {
-      _showMessage('Google sign-in error: ${e.toString()}');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -92,7 +99,14 @@ class _LoginScreenState extends State<LoginScreen> {
         _showMessage('Failed to send password reset email');
       }
     } catch (e) {
-      _showMessage('Error: ${e.toString()}');
+      if (e.toString().contains('network') || 
+          e.toString().contains('connection') || 
+          e.toString().contains('socket') ||
+          e.toString().contains('timeout')) {
+        _showMessage('No internet connection. Please check your network and try again.');
+      } else {
+        _showMessage('Error: ${e.toString()}');
+      }
     }
   }
 
@@ -290,66 +304,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                 color: Color(0xFFffffff),
                               ),
                             ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Or login with
-                  const Row(
-                    children: [
-                      Expanded(
-                        child: Divider(thickness: 1),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          'Or login with',
-                          style: TextStyle(
-                            color: Color(0xFFD9D9D9),
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Divider(thickness: 1),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Google sign in button
-                  Center(
-                    child: SizedBox(
-                      width: 220,
-                      height: 50,
-                      child: OutlinedButton(
-                        onPressed: _isLoading ? null : _loginWithGoogle,
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.grey, width: 1),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.network(
-                              'https://cdn.iconscout.com/icon/free/png-256/google-160-189824.png',
-                              height: 24,
-                              width: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            const Text(
-                              'Google',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontFamily: 'Poppins',
-                                color: Colors.black,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
                   ),
                   const SizedBox(height: 32),

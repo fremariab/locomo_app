@@ -23,23 +23,23 @@ class AuthService {
             'email': user.email,
             'fullName': fullName,
             'createdAt': FieldValue.serverTimestamp(),
-            'country': 'Ghana', // Default values from UserProfileScreen
-            'language': 'English',
-            'appearance': 'Light',
+            'country': 'Ghana', 
+/*             'language': 'English',
+            'appearance': 'Light', */
             'profileImageUrl': null,
             'authProvider': 'email',
           });
           await user.updateDisplayName(fullName);
           firestoreSuccess = true;
         } catch (e) {
-          print('🔥 Firestore error: $e');
+          print(' Firestore error: $e');
         }
       }
     } on FirebaseAuthException catch (e) {
-      print('🔥 FirebaseAuthException: ${e.message}');
+      print(' FirebaseAuthException: ${e.message}');
       throw FirebaseAuthException(code: e.code, message: e.message);
     } catch (e) {
-      print('❌ Unexpected registration error: $e');
+      print(' Unexpected registration error: $e');
       throw Exception("Unexpected error: $e");
     }
     return {
@@ -56,7 +56,7 @@ class AuthService {
         password: password,
       );
     } catch (e) {
-      print('❌ Sign up failed: $e');
+      print(' Sign up failed: $e');
       rethrow;
     }
   }
@@ -69,7 +69,7 @@ class AuthService {
         password: password,
       );
     } catch (e) {
-      print('❌ Sign in failed: $e');
+      print(' Sign in failed: $e');
       rethrow;
     }
   }
@@ -85,15 +85,15 @@ class AuthService {
           'fullName': fullName.isNotEmpty ? fullName : user.displayName ?? 'User',
           'createdAt': FieldValue.serverTimestamp(),
           'country': 'Ghana',
-          'language': 'English',
-          'appearance': 'Light',
+/*           'language': 'English',
+          'appearance': 'Light', */
           'profileImageUrl': null,
           'authProvider': 'email',
         });
       }
       return true;
     } catch (e) {
-      print('❌ ensureUserInFirestore failed: $e');
+      print(' ensureUserInFirestore failed: $e');
       return false;
     }
   }
@@ -103,9 +103,29 @@ class AuthService {
     try {
       final result = await _auth.signInWithEmailAndPassword(email: email, password: password);
       return result.user;
+    } on FirebaseAuthException catch (e) {
+      print('Login failed: $e');
+      
+      // Check for network-related errors in Firebase exceptions
+      if (e.code == 'network-request-failed') {
+        throw Exception('No internet connection. Please check your network and try again.');
+      }
+      
+      // For other Firebase errors, throw the original exception
+      throw e;
     } catch (e) {
-      print('❌ Login failed: $e');
-      return null;
+      print('Login failed: $e');
+      
+      // Check if it's a network-related error
+      if (e.toString().contains('network') || 
+          e.toString().contains('connection') || 
+          e.toString().contains('socket') ||
+          e.toString().contains('timeout')) {
+        throw Exception('No internet connection. Please check your network and try again.');
+      }
+      
+      // For other errors, throw the original exception
+      throw e;
     }
   }
 
@@ -131,15 +151,15 @@ class AuthService {
             'createdAt': FieldValue.serverTimestamp(),
             'authProvider': 'google',
             'country': 'Ghana',
-            'language': 'English',
-            'appearance': 'Light',
+/*             'language': 'English',
+            'appearance': 'Light', */
             'profileImageUrl': user.photoURL,
           });
         }
       }
       return user;
     } catch (e) {
-      print('❌ Google sign-in error: $e');
+      print(' Google sign-in error: $e');
       return null;
     }
   }
@@ -152,7 +172,7 @@ class AuthService {
         await user.updateDisplayName(displayName);
       }
     } catch (e) {
-      print('❌ Update display name failed: $e');
+      print(' Update display name failed: $e');
       rethrow;
     }
   }
@@ -165,7 +185,7 @@ class AuthService {
         await user.updateEmail(email);
       }
     } catch (e) {
-      print('❌ Update email failed: $e');
+      print(' Update email failed: $e');
       rethrow;
     }
   }
@@ -178,7 +198,7 @@ class AuthService {
         await user.updatePassword(password);
       }
     } catch (e) {
-      print('❌ Update password failed: $e');
+      print(' Update password failed: $e');
       rethrow;
     }
   }
@@ -188,7 +208,7 @@ class AuthService {
     try {
       await _auth.sendPasswordResetEmail(email: email);
     } catch (e) {
-      print('❌ Send password reset email failed: $e');
+      print(' Send password reset email failed: $e');
       rethrow;
     }
   }
@@ -209,9 +229,29 @@ class AuthService {
     try {
       await _auth.sendPasswordResetEmail(email: email);
       return true;
+    } on FirebaseAuthException catch (e) {
+      print(' Password reset failed: $e');
+      
+      // Check for network-related errors in Firebase exceptions
+      if (e.code == 'network-request-failed') {
+        throw Exception('No internet connection. Please check your network and try again.');
+      }
+      
+      // For other Firebase errors, throw the original exception
+      throw e;
     } catch (e) {
-      print('❌ Password reset failed: $e');
-      return false;
+      print(' Password reset failed: $e');
+      
+      // Check if it's a network-related error
+      if (e.toString().contains('network') || 
+          e.toString().contains('connection') || 
+          e.toString().contains('socket') ||
+          e.toString().contains('timeout')) {
+        throw Exception('No internet connection. Please check your network and try again.');
+      }
+      
+      // For other errors, throw the original exception
+      throw e;
     }
   }
 
@@ -221,7 +261,7 @@ class AuthService {
       await _firestore.collection('users').doc(userId).update(data);
       return true;
     } catch (e) {
-      print('❌ Profile update failed: $e');
+      print(' Profile update failed: $e');
       return false;
     }
   }
@@ -256,11 +296,11 @@ class AuthService {
       }
       return true;
     } catch (e) {
-      print('❌ Account deletion failed: $e');
+      print(' Account deletion failed: $e');
       return false;
     }
   }
 
-  // Auth state changes stream
+ 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 }
