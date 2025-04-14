@@ -3,7 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 import 'firebase_options.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/onboarding_screen1.dart';
 import 'screens/onboarding_screen2.dart';
@@ -12,23 +12,47 @@ import 'screens/register.dart';
 import 'screens/account_details_screen.dart';
 import 'screens/saved_routes_screen.dart';
 import 'screens/login.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'screens/search.dart'; // your home screen after login
 
-
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  runApp(const MyApp());
+  final prefs = await SharedPreferences.getInstance();
+  final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+  final currentUser = FirebaseAuth.instance.currentUser;
+
+  runApp(MyApp(
+    hasSeenOnboarding: hasSeenOnboarding,
+    isLoggedIn: currentUser != null,
+  ));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool hasSeenOnboarding;
+  final bool isLoggedIn;
+
+  const MyApp({
+    super.key,
+    required this.hasSeenOnboarding,
+    required this.isLoggedIn,
+  });
 
   @override
   Widget build(BuildContext context) {
+    Widget initialScreen;
+
+    if (!hasSeenOnboarding) {
+      initialScreen = const OnboardingScreen();
+    } else if (isLoggedIn) {
+      initialScreen = TravelHomePage(); // your main screen after login
+    } else {
+      initialScreen = const LoginScreen();
+    }
+
     return MaterialApp(
       title: 'Locomo',
       debugShowCheckedModeBanner: false,
@@ -40,11 +64,11 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Poppins',
         useMaterial3: true,
       ),
-      home: const OnboardingScreen(),
+      home: initialScreen,
       routes: {
         '/account-details': (context) => const AccountDetailsScreen(),
         '/saved-routes': (context) => const SavedRoutesScreen(),
-         '/login': (context) => const LoginScreen(),
+        '/login': (context) => const LoginScreen(),
       },
     );
   }
@@ -113,21 +137,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 40, left: 40, right: 40),
+                    padding:
+                        const EdgeInsets.only(bottom: 40, left: 40, right: 40),
                     child: SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           if (_currentPage < 2) {
                             _pageController.nextPage(
                               duration: const Duration(milliseconds: 300),
                               curve: Curves.easeIn,
                             );
                           } else {
+                            //  Save onboarding completion
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setBool('hasSeenOnboarding', true);
+
+                            //  Navigate to next screen
                             Navigator.of(context).pushReplacement(
                               MaterialPageRoute(
-                                builder: (context) => const RegisterScreen(),
+                                builder: (context) =>
+                                    const RegisterScreen(), // or LoginScreen()
                               ),
                             );
                           }
