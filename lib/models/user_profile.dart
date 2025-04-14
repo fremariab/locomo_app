@@ -7,8 +7,8 @@ class UserProfile {
   final DateTime createdAt;
   final String? profileImageUrl;
   final String country;
-  final String language;
-  final String appearance;
+/*   final String language;
+  final String appearance; */
   final DateTime? defaultSearchDate;
   final String authProvider;
 
@@ -19,8 +19,8 @@ class UserProfile {
     required this.createdAt,
     this.profileImageUrl,
     required this.country,
-    required this.language,
-    required this.appearance,
+/*     required this.language,
+    required this.appearance, */
     this.defaultSearchDate,
     this.authProvider = 'email',
   });
@@ -35,8 +35,8 @@ class UserProfile {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       profileImageUrl: data['profileImageUrl'],
       country: data['country'] ?? 'Ghana',
-      language: data['language'] ?? 'English',
-      appearance: data['appearance'] ?? 'Light',
+/*       language: data['language'] ?? 'English',
+      appearance: data['appearance'] ?? 'Light', */
       defaultSearchDate: (data['defaultSearchDate'] as Timestamp?)?.toDate(),
       authProvider: data['authProvider'] ?? 'email',
     );
@@ -49,8 +49,8 @@ class UserProfile {
       'fullName': fullName,
       'profileImageUrl': profileImageUrl,
       'country': country,
-      'language': language,
-      'appearance': appearance,
+/*       'language': language,
+      'appearance': appearance, */
       'defaultSearchDate': defaultSearchDate != null ? Timestamp.fromDate(defaultSearchDate!) : null,
       'authProvider': authProvider,
     };

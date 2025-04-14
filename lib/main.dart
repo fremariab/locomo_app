@@ -1,177 +1,75 @@
 import 'package:flutter/material.dart';
-import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:provider/provider.dart';
-import 'firebase_options.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
-// Screens
+import 'firebase_options.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/onboarding_screen1.dart';
 import 'screens/onboarding_screen2.dart';
 import 'screens/onboarding_screen3.dart';
 import 'screens/register.dart';
-import 'screens/login.dart';
-import 'screens/user_profile.dart';
-import 'screens/forgot_password_screen.dart';
 import 'screens/account_details_screen.dart';
 import 'screens/saved_routes_screen.dart';
-import 'screens/search.dart';
-
-// Services and Providers
-import 'services/auth_service.dart';
-import 'providers/auth_provider.dart';
+import 'screens/login.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'screens/search.dart'; // your home screen after login
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // ✅ Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  runApp(const MyApp());
+  final prefs = await SharedPreferences.getInstance();
+  final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+  final currentUser = FirebaseAuth.instance.currentUser;
+
+  runApp(MyApp(
+    hasSeenOnboarding: hasSeenOnboarding,
+    isLoggedIn: currentUser != null,
+  ));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool hasSeenOnboarding;
+  final bool isLoggedIn;
+
+  const MyApp({
+    super.key,
+    required this.hasSeenOnboarding,
+    required this.isLoggedIn,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        // Add AuthProvider to manage authentication state
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-      ],
-      child: MaterialApp(
-        title: 'Locomo',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFFc32e31),
-            primary: const Color(0xFFc32e31),
-          ),
-          fontFamily: 'Poppins',
-          useMaterial3: true,
-          // Set common styles for AppBar
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFFc32e31),
-            foregroundColor: Colors.white,
-            elevation: 0,
-          ),
-          // Set common styles for ElevatedButtons
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFc32e31),
-              foregroundColor: Colors.white,
-              elevation: 0,
-            ),
-          ),
-        ),
-        // Setup routes for the app
-        initialRoute: '/',
-        routes: {
-          '/': (context) => const SplashScreen(),
-          '/onboarding': (context) => const OnboardingScreen(),
-          '/login': (context) => const LoginScreen(),
-          '/register': (context) => const RegisterScreen(),
-          '/home': (context) => const TravelHomePage(),
-          '/profile': (context) => const UserProfileScreen(),
-          '/account-details': (context) => const AccountDetailsScreen(),
-          '/saved-routes': (context) => const SavedRoutesScreen(),
-          '/forgot-password': (context) => const ForgotPasswordScreen(),
-        },
-      ),
-    );
-  }
-}
+    Widget initialScreen;
 
-// Splash Screen to check authentication state
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({Key? key}) : super(key: key);
-
-  @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen> {
-  final AuthService _authService = AuthService();
-  bool _checking = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkAuthState();
-  }
-
-  Future<void> _checkAuthState() async {
-    await Future.delayed(const Duration(seconds: 2)); // Short delay for splash screen
-    
-    if (!mounted) return;
-    
-    final user = _authService.getCurrentUser();
-    setState(() {
-      _checking = false;
-    });
-    
-    if (user != null) {
-      // User is already logged in, go to home
-      Navigator.of(context).pushReplacementNamed('/home');
+    if (!hasSeenOnboarding) {
+      initialScreen = const OnboardingScreen();
+    } else if (isLoggedIn) {
+      initialScreen = TravelHomePage(); // your main screen after login
     } else {
-      // User is not logged in, go to onboarding
-      Navigator.of(context).pushReplacementNamed('/onboarding');
+      initialScreen = const LoginScreen();
     }
-  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFc32e31),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // App logo
-            Image.asset(
-              'assets/images/locomo_logo3.png',
-              width: 120,
-              height: 120,
-              errorBuilder: (context, error, stackTrace) => const Icon(
-                Icons.directions_bus_filled,
-                size: 120,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 20),
-            // App name
-            const Text(
-              'LocoMo',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 38,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Poppins',
-              ),
-            ),
-            const SizedBox(height: 8),
-            // App tagline
-            const Text(
-              'Your Travel Companion',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontFamily: 'Poppins',
-              ),
-            ),
-            const SizedBox(height: 40),
-            // Loading indicator
-            if (_checking)
-              const CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 3,
-              ),
-          ],
+    return MaterialApp(
+      title: 'Locomo',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFc32e31),
+          primary: const Color(0xFFc32e31),
         ),
+        fontFamily: 'Poppins',
+        useMaterial3: true,
       ),
+      home: initialScreen,
+      routes: {
+        '/account-details': (context) => const AccountDetailsScreen(),
+        '/saved-routes': (context) => const SavedRoutesScreen(),
+        '/login': (context) => const LoginScreen(),
+      },
     );
   }
 }
@@ -239,21 +137,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 40, left: 40, right: 40),
+                    padding:
+                        const EdgeInsets.only(bottom: 40, left: 40, right: 40),
                     child: SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           if (_currentPage < 2) {
                             _pageController.nextPage(
                               duration: const Duration(milliseconds: 300),
                               curve: Curves.easeIn,
                             );
                           } else {
+                            //  Save onboarding completion
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setBool('hasSeenOnboarding', true);
+
+                            //  Navigate to next screen
                             Navigator.of(context).pushReplacement(
                               MaterialPageRoute(
-                                builder: (context) => const RegisterScreen(),
+                                builder: (context) =>
+                                    const RegisterScreen(), // or LoginScreen()
                               ),
                             );
                           }
