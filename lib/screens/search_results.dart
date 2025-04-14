@@ -57,11 +57,13 @@ class RouteCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              if (label != null)
+ 
+              // In the build method, update the label handling:
+              if (label != null && label!.isNotEmpty)
                 Text(
                   label!,
                   style: TextStyle(
-                    color: labelColor,
+                    color: labelColor ?? Colors.black, // Provide default color
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -322,6 +324,18 @@ class TravelResultsPage extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final route = results[index];
 
+                  // Calculate duration text
+                  final duration = route['time'] != null
+                      ? '${route['time']} min'
+                      : 'Unknown duration';
+
+                  // Build route details text with walking info if available
+                  String routeDetails = route['details'] ?? 'Direct route';
+                  if (route['originWalking'] != null ||
+                      route['destinationWalking'] != null) {
+                    routeDetails += ' (with walking segments)';
+                  }
+
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12.0),
                     child: RouteCard(
@@ -329,16 +343,41 @@ class TravelResultsPage extends StatelessWidget {
                       labelColor: index == 0 ? Colors.green[700] : null,
                       departureTime: route['departure_time'] ?? 'N/A',
                       arrivalTime: route['arrival_time'] ?? 'N/A',
-                      duration: '${route['time']} min',
+                      duration: duration,
                       route: '${route['origin']} → ${route['destination']}',
-                      routeDetails: route['details'] ?? 'Direct route',
+                      routeDetails: routeDetails,
                       transferCount: route['transfers'] ?? 0,
-                      price: 'GHS ${route['fare'].toString()}',
+                      price: route['fare'] != null
+                          ? 'GHS ${route['fare'].toStringAsFixed(2)}'
+                          : 'GHS 0.00',
                       transferColor: Colors.red,
                     ),
                   );
-                },
-              ),
+                }
+                // itemBuilder: (context, index) {
+                //   final route = results[index];
+
+                //   return Padding(
+                //     padding: const EdgeInsets.only(bottom: 12.0),
+                //     child: RouteCard(
+                //       label: index == 0 ? 'Recommended' : null,
+                //       labelColor: index == 0 ? Colors.green[700] : null,
+                //       departureTime: route['departure_time'] ?? 'N/A',
+                //       arrivalTime: route['arrival_time'] ?? 'N/A',
+                //       duration: '${route['time']} min',
+                //       route: '${route['origin']} → ${route['destination']}',
+                //       routeDetails: route['details'] ?? 'Direct route',
+                //       transferCount: route['transfers'] ?? 0,
+                //       // price: 'GHS ${route['fare'].toString()}',
+                //       price: route['fare'] != null
+                //           ? 'GHS ${route['fare']}'
+                //           : 'GHS 0.00',
+
+                //       transferColor: Colors.red,
+                //     ),
+                //   );
+                // },
+                ),
       ),
     );
   }

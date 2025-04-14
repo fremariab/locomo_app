@@ -37,14 +37,14 @@ class RouteService {
     }
   }
 
-  // New method to construct composite routes.
-  static Future<List<dynamic>> searchCompositeRoutes({
-    required String origin,
-    required String destination,
-    String preference = "none",
-    double? budget,
-  }) async {
-    // Step 1: Get the trotro routes from the existing searchRoutes.
+
+static Future<List<dynamic>> searchCompositeRoutes({
+  required String origin,
+  required String destination,
+  String preference = "none",
+  double? budget,
+}) async {
+  try {
     final trotroRoutes = await searchRoutes(
       origin: origin,
       destination: destination,
@@ -54,30 +54,44 @@ class RouteService {
 
     List<dynamic> compositeRoutes = [];
 
-    // Step 2: For each route, integrate walking segments.
-    // This example assumes that each route object from the backend
-    // includes keys "firstStation" and "lastStation" representing the station addresses.
     for (var route in trotroRoutes) {
-      final String firstStation = route["firstStation"];
-      final String lastStation = route["lastStation"];
+      // Use first and last stops if firstStation/lastStation not available
+      final stops = List<String>.from(route['stops'] ?? []);
+      if (stops.isEmpty) continue;
 
-      // Obtain walking directions:
-      final originWalking = await MapService.getWalkingDirections(
-        origin: origin,
-        destination: firstStation,
-      );
-      final destinationWalking = await MapService.getWalkingDirections(
-        origin: lastStation,
-        destination: destination,
-      );
+      final firstStation = stops.first;
+      final lastStation = stops.last;
 
-      // Merge these walking segments into your route.
-      route["originWalking"] = originWalking;
-      route["destinationWalking"] = destinationWalking;
+      // Add default timing estimates if not provided
+      route['departure_time'] ??= 'Now';
+      route['arrival_time'] ??= 'Later';
+      route['time'] ??= (stops.length * 2); // 2 mins per stop estimate
+      route['details'] ??= route['routeName'] ?? 'Direct route';
+      route['transfers'] ??= 0;
+
+      // Get walking directions with null checks
+      try {
+        final originWalking = await MapService.getWalkingDirections(
+          origin: origin,
+          destination: firstStation,
+        );
+        final destinationWalking = await MapService.getWalkingDirections(
+          origin: lastStation,
+          destination: destination,
+        );
+
+        route['originWalking'] = originWalking;
+        route['destinationWalking'] = destinationWalking;
+      } catch (e) {
+        print('Error getting walking directions: $e');
+      }
 
       compositeRoutes.add(route);
     }
 
     return compositeRoutes;
+  } catch (e) {
+    print('Error in composite route search: $e');
+    rethrow;
   }
-}
+}}

@@ -214,74 +214,7 @@ class _TravelHomePageState extends State<TravelHomePage> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        // onPressed: () async {
-                        //   final origin = originController.text.trim();
-                        //   final destination = destinationController.text.trim();
-
-                        //   if (origin.isEmpty || destination.isEmpty) {
-                        //     ScaffoldMessenger.of(context).showSnackBar(
-                        //       const SnackBar(
-                        //           content: Text(
-                        //               "Please enter both origin and destination")),
-                        //     );
-                        //     return;
-                        //   }
-                        //   try {
-                        //     // Optional: Fetch and print directions from Google
-                        //     final directions = await MapService.getDirections(
-                        //       origin: origin,
-                        //       destination: destination,
-                        //     );
-
-                        //     final steps = directions?['routes']?[0]?['legs']?[0]
-                        //         ?['steps'];
-                        //     if (steps != null) {
-                        //       for (var step in steps) {
-                        //         print(step['html_instructions']);
-                        //       }
-                        //     }
-
-                        //     // Get selected preference from dropdown if applicable
-                        //     final preference =
-                        //         'lowest_fare'; // Hardcoded for now, or update from a controller/state
-
-                        //     // Parse budget
-                        //     final budgetText = _controller.text.trim();
-                        //     final budget = budgetText.isNotEmpty
-                        //         ? double.tryParse(budgetText)
-                        //         : null;
-
-                        //     // Fetch route suggestions from backend
-                        //     final routes = await RouteService.searchRoutes(
-                        //       origin: origin,
-                        //       destination: destination,
-                        //       preference: preference,
-                        //       budget: budget,
-                        //     );
-
-                        //     if (routes.isEmpty) {
-                        //       ScaffoldMessenger.of(context).showSnackBar(
-                        //         const SnackBar(
-                        //             content:
-                        //                 Text("No suggested routes found.")),
-                        //       );
-                        //       return;
-                        //     }
-
-                        //     // Navigate to TravelResultsPage with the results
-                        //     Navigator.push(
-                        //       context,
-                        //       MaterialPageRoute(
-                        //         builder: (_) =>
-                        //             TravelResultsPage(results: routes),
-                        //       ),
-                        //     );
-                        //   } catch (e) {
-                        //     ScaffoldMessenger.of(context).showSnackBar(
-                        //       SnackBar(content: Text("Error: $e")),
-                        //     );
-                        //   }
-                        // },
+  
                         onPressed: () async {
                           final origin = originController.text.trim();
                           final destination = destinationController.text.trim();
@@ -296,15 +229,24 @@ class _TravelHomePageState extends State<TravelHomePage> {
                           }
 
                           try {
-                            // Use the composite route search that includes walking segments.
+                            // Show loading indicator
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (context) => const Center(
+                                  child: CircularProgressIndicator()),
+                            );
+
                             final compositeRoutes =
                                 await RouteService.searchCompositeRoutes(
                               origin: origin,
                               destination: destination,
-                              preference:
-                                  'lowest_fare', // or get it from your dropdown
+                              preference: 'lowest_fare',
                               budget: double.tryParse(_controller.text.trim()),
                             );
+
+                            // Hide loading indicator
+                            Navigator.of(context).pop();
 
                             if (compositeRoutes.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -323,12 +265,13 @@ class _TravelHomePageState extends State<TravelHomePage> {
                               ),
                             );
                           } catch (e) {
+                            // Hide loading indicator if still showing
+                            Navigator.of(context).pop();
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("Error: $e")),
+                              SnackBar(content: Text("Error: ${e.toString()}")),
                             );
                           }
                         },
-
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFC32E31),
                           shape: RoundedRectangleBorder(
