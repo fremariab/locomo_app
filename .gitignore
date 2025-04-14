@@ -95,3 +95,20 @@
 .pub-cache/
 .pub/
 build/
+
+# Flutter / Dart
+build/
+.dart_tool/
+.packages
+.pub-cache/
+
+# Android build artifacts
+android/app/.cxx/
+android/app/build/
+
+# Node
+node_modules/
+package-lock.json
+
+# Secrets
+serviceAccountKey.json

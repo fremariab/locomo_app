@@ -1,2 +1,0 @@
-/Users/afdmin/Desktop/locomo_app/android/app/.cxx/Debug/3r2n6d5k/x86/CMakeFiles/edit_cache.dir
-/Users/afdmin/Desktop/locomo_app/android/app/.cxx/Debug/3r2n6d5k/x86/CMakeFiles/rebuild_cache.dir

@@ -1,2 +1,0 @@
-C:/Users/OK/Desktop/mobile app/flutter/locomo_app/android/app/.cxx/Debug/3b2w2i3s/armeabi-v7a/CMakeFiles/edit_cache.dir
-C:/Users/OK/Desktop/mobile app/flutter/locomo_app/android/app/.cxx/Debug/3b2w2i3s/armeabi-v7a/CMakeFiles/rebuild_cache.dir
