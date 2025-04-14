@@ -286,12 +286,14 @@ Future<void> _shareRouteViaSMS(String message, String phoneNumber) async {
 }
 
 class TravelResultsPage extends StatelessWidget {
-  const TravelResultsPage({Key? key}) : super(key: key);
+  final List<dynamic> results;
+
+  const TravelResultsPage({Key? key, required this.results}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MainScaffold(
-      currentIndex: 0, // Search is selected
+      currentIndex: 0,
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -301,167 +303,42 @@ class TravelResultsPage extends StatelessWidget {
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
-                'Results',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 2),
-              Text(
-                'Papaye Osu • Pent Hostel, Madina',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                ),
-              ),
-            ],
+          title: const Text(
+            'Results',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Poppins',
+            ),
           ),
           centerTitle: false,
         ),
-        body: Column(
-          children: [
-            // Filter Buttons
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Row(
-                children: [
-                  // Sort Button
-                  Expanded(
-                    child: Container(
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFC32E31),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.sort, color: Colors.white, size: 18),
-                          SizedBox(width: 8),
-                          Text(
-                            'Sort: Cheapest Route',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
+        body: results.isEmpty
+            ? const Center(child: Text("No routes found"))
+            : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: results.length,
+                itemBuilder: (context, index) {
+                  final route = results[index];
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: RouteCard(
+                      label: index == 0 ? 'Recommended' : null,
+                      labelColor: index == 0 ? Colors.green[700] : null,
+                      departureTime: route['departure_time'] ?? 'N/A',
+                      arrivalTime: route['arrival_time'] ?? 'N/A',
+                      duration: '${route['time']} min',
+                      route: '${route['origin']} → ${route['destination']}',
+                      routeDetails: route['details'] ?? 'Direct route',
+                      transferCount: route['transfers'] ?? 0,
+                      price: 'GHS ${route['fare'].toString()}',
+                      transferColor: Colors.red,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
+                  );
+                },
               ),
-            ),
-
-            // Route Cards
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  const SizedBox(height: 8),
-
-                  // Cheapest Route Card (Recommended)
-                  // Cheapest Route Card (Recommended)
-                  Column(
-                    children: [
-                      // Recommended Label only for first card
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFC32E31),
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(12),
-                            topRight: Radius.circular(12),
-                          ),
-                        ),
-                        child: Row(
-                          children: const [
-                            Text(
-                              'RECOMMENDED',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(width: 6),
-                            Icon(
-                              Icons.info_outline,
-                              color: Colors.white,
-                              size: 16,
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Use RouteCard with special styling for bottom border radius
-                      ClipRRect(
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(12),
-                          bottomRight: Radius.circular(12),
-                        ),
-                        child: RouteCard(
-                          label: 'Cheapest',
-                          labelColor: Colors.green[700],
-                          departureTime: '6:15 AM',
-                          arrivalTime: '7:05 AM',
-                          duration: '50m',
-                          route: 'Osu → Madina Direct',
-                          routeDetails: 'RE Junction, Osu → UPSA Junction',
-                          transferCount: 0,
-                          price: 'GHS 5.50',
-                          transferColor: Colors.red,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Fastest Route Card
-                  RouteCard(
-                    label: 'Fastest',
-                    labelColor: Colors.green[700],
-                    departureTime: '6:15 AM',
-                    arrivalTime: '6:55 AM',
-                    duration: '40m',
-                    route: 'Osu → 37 → Madina',
-                    routeDetails: 'Walk 10 min to Ako-Adjei',
-                    transferCount: 1,
-                    price: 'GHS 6.00',
-                    transferColor: Colors.red,
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Third Route Card
-                  RouteCard(
-                    label: null,
-                    departureTime: '6:15 AM',
-                    arrivalTime: '7:20 AM',
-                    duration: '1h5m',
-                    route: 'Osu → Circle → UPSA',
-                    routeDetails: 'Walk 5 min to RE Junction',
-                    transferCount: 2,
-                    price: 'GHS 7.50',
-                    transferColor: Colors.red,
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

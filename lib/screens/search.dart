@@ -1,5 +1,7 @@
 import 'search_results.dart';
 import 'package:flutter/material.dart';
+import 'package:locomo_app/services/map_service.dart';
+import 'package:locomo_app/services/route_service.dart';
 import 'package:flutter/services.dart';
 import 'package:locomo_app/widgets/MainScaffold.dart' as widgets;
 
@@ -11,7 +13,10 @@ class TravelHomePage extends StatefulWidget {
 }
 
 class _TravelHomePageState extends State<TravelHomePage> {
-  final TextEditingController _controller = TextEditingController();
+  final TextEditingController originController = TextEditingController();
+  final TextEditingController destinationController = TextEditingController();
+  final TextEditingController _controller =
+      TextEditingController(); // Budget controller
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +30,7 @@ class _TravelHomePageState extends State<TravelHomePage> {
               Stack(
                 children: [
                   CustomPaint(
-                    size: Size(double.infinity, 225),
+                    size: const Size(double.infinity, 225),
                     painter: RedCurvePainter(),
                   ),
                   Container(
@@ -60,8 +65,9 @@ class _TravelHomePageState extends State<TravelHomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const TextField(
-                      decoration: InputDecoration(
+                    TextField(
+                      controller: originController,
+                      decoration: const InputDecoration(
                         labelText: 'Origin',
                         labelStyle: TextStyle(
                           color: Color(0xFFD9D9D9),
@@ -78,7 +84,7 @@ class _TravelHomePageState extends State<TravelHomePage> {
                         contentPadding:
                             EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.black,
                         fontSize: 16,
                         fontFamily: 'Poppins',
@@ -86,8 +92,9 @@ class _TravelHomePageState extends State<TravelHomePage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const TextField(
-                      decoration: InputDecoration(
+                    TextField(
+                      controller: destinationController,
+                      decoration: const InputDecoration(
                         labelText: 'Destination',
                         labelStyle: TextStyle(
                           color: Color(0xFFD9D9D9),
@@ -104,7 +111,7 @@ class _TravelHomePageState extends State<TravelHomePage> {
                         contentPadding:
                             EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.black,
                         fontSize: 16,
                         fontFamily: 'Poppins',
@@ -118,8 +125,8 @@ class _TravelHomePageState extends State<TravelHomePage> {
                           flex: 2,
                           child: DropdownButtonFormField<String>(
                             iconEnabledColor: Colors.white,
-                            dropdownColor: Color(0xFFd9d9d9),
-                            decoration: InputDecoration(
+                            dropdownColor: const Color(0xFFd9d9d9),
+                            decoration: const InputDecoration(
                               labelText: 'Travel Preference',
                               labelStyle: TextStyle(
                                 color: Color(0xFFD9D9D9),
@@ -138,13 +145,13 @@ class _TravelHomePageState extends State<TravelHomePage> {
                               contentPadding: EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 12),
                             ),
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.black,
                               fontSize: 16,
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w400,
                             ),
-                            value: 'none',
+                            value: 'lowest_fare',
                             items: const [
                               DropdownMenuItem(
                                   value: 'none', child: Text('None')),
@@ -166,13 +173,13 @@ class _TravelHomePageState extends State<TravelHomePage> {
                           flex: 1,
                           child: TextField(
                             controller: _controller,
-                            keyboardType:
-                                TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                             inputFormatters: [
                               FilteringTextInputFormatter.allow(
                                   RegExp(r'^\d+(\.\d{0,2})?')),
                             ],
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                               labelText: 'Budget',
                               prefixText: 'GHC ',
                               labelStyle: TextStyle(
@@ -192,7 +199,7 @@ class _TravelHomePageState extends State<TravelHomePage> {
                               contentPadding: EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 12),
                             ),
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.black,
                               fontSize: 16,
                               fontFamily: 'Poppins',
@@ -207,14 +214,121 @@ class _TravelHomePageState extends State<TravelHomePage> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    const TravelResultsPage()),
-                          );
+                        // onPressed: () async {
+                        //   final origin = originController.text.trim();
+                        //   final destination = destinationController.text.trim();
+
+                        //   if (origin.isEmpty || destination.isEmpty) {
+                        //     ScaffoldMessenger.of(context).showSnackBar(
+                        //       const SnackBar(
+                        //           content: Text(
+                        //               "Please enter both origin and destination")),
+                        //     );
+                        //     return;
+                        //   }
+                        //   try {
+                        //     // Optional: Fetch and print directions from Google
+                        //     final directions = await MapService.getDirections(
+                        //       origin: origin,
+                        //       destination: destination,
+                        //     );
+
+                        //     final steps = directions?['routes']?[0]?['legs']?[0]
+                        //         ?['steps'];
+                        //     if (steps != null) {
+                        //       for (var step in steps) {
+                        //         print(step['html_instructions']);
+                        //       }
+                        //     }
+
+                        //     // Get selected preference from dropdown if applicable
+                        //     final preference =
+                        //         'lowest_fare'; // Hardcoded for now, or update from a controller/state
+
+                        //     // Parse budget
+                        //     final budgetText = _controller.text.trim();
+                        //     final budget = budgetText.isNotEmpty
+                        //         ? double.tryParse(budgetText)
+                        //         : null;
+
+                        //     // Fetch route suggestions from backend
+                        //     final routes = await RouteService.searchRoutes(
+                        //       origin: origin,
+                        //       destination: destination,
+                        //       preference: preference,
+                        //       budget: budget,
+                        //     );
+
+                        //     if (routes.isEmpty) {
+                        //       ScaffoldMessenger.of(context).showSnackBar(
+                        //         const SnackBar(
+                        //             content:
+                        //                 Text("No suggested routes found.")),
+                        //       );
+                        //       return;
+                        //     }
+
+                        //     // Navigate to TravelResultsPage with the results
+                        //     Navigator.push(
+                        //       context,
+                        //       MaterialPageRoute(
+                        //         builder: (_) =>
+                        //             TravelResultsPage(results: routes),
+                        //       ),
+                        //     );
+                        //   } catch (e) {
+                        //     ScaffoldMessenger.of(context).showSnackBar(
+                        //       SnackBar(content: Text("Error: $e")),
+                        //     );
+                        //   }
+                        // },
+                        onPressed: () async {
+                          final origin = originController.text.trim();
+                          final destination = destinationController.text.trim();
+
+                          if (origin.isEmpty || destination.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      "Please enter both origin and destination")),
+                            );
+                            return;
+                          }
+
+                          try {
+                            // Use the composite route search that includes walking segments.
+                            final compositeRoutes =
+                                await RouteService.searchCompositeRoutes(
+                              origin: origin,
+                              destination: destination,
+                              preference:
+                                  'lowest_fare', // or get it from your dropdown
+                              budget: double.tryParse(_controller.text.trim()),
+                            );
+
+                            if (compositeRoutes.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text("No suggested routes found.")),
+                              );
+                              return;
+                            }
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    TravelResultsPage(results: compositeRoutes),
+                              ),
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Error: $e")),
+                            );
+                          }
                         },
+
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFC32E31),
                           shape: RoundedRectangleBorder(
@@ -265,12 +379,12 @@ class _TravelHomePageState extends State<TravelHomePage> {
                       height: 180,
                       child: ListView(
                         scrollDirection: Axis.horizontal,
-                        children: const [
+                        children: [
                           StationCard(
                             imagePath: 'assets/images/onboarding11.png',
                             stationName: 'Shiashie Station',
                           ),
-                          SizedBox(width: 12),
+                          const SizedBox(width: 12),
                           StationCard(
                             imagePath: 'assets/images/onboarding8.jpg',
                             stationName: 'Kaneshie Station',
@@ -311,12 +425,10 @@ class StationCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Station Image
           Image.asset(
             imagePath,
             fit: BoxFit.cover,
           ),
-          // Overlay Gradient
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -329,7 +441,6 @@ class StationCard extends StatelessWidget {
               ),
             ),
           ),
-          // Station Name
           Positioned(
             bottom: 12,
             left: 12,
@@ -337,10 +448,11 @@ class StationCard extends StatelessWidget {
             child: Text(
               stationName,
               style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                  fontFamily: 'Poppins'),
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+                fontFamily: 'Poppins',
+              ),
             ),
           ),
         ],
@@ -352,18 +464,16 @@ class StationCard extends StatelessWidget {
 class RedCurvePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    // Base color
+    // Base color background
     final Paint basePaint = Paint()
       ..color = const Color(0xFFB22A2D)
       ..style = PaintingStyle.fill;
-
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), basePaint);
 
-    // Lighter curved shape
+    // Light red curve
     final Paint lightCurvePaint = Paint()
       ..color = const Color(0xFFC32E31)
       ..style = PaintingStyle.fill;
-
     final Path lightCurvePath = Path();
     lightCurvePath.moveTo(0, size.height * 0.6);
     lightCurvePath.quadraticBezierTo(
@@ -371,21 +481,18 @@ class RedCurvePainter extends CustomPainter {
     lightCurvePath.lineTo(size.width, 0);
     lightCurvePath.lineTo(0, 0);
     lightCurvePath.close();
-
     canvas.drawPath(lightCurvePath, lightCurvePaint);
 
-    // Darker curved shape
+    // Darker bottom curve
     final Paint darkCurvePaint = Paint()
       ..color = const Color(0xFF9E2528)
       ..style = PaintingStyle.fill;
-
     final Path darkCurvePath = Path();
     darkCurvePath.moveTo(size.width * 0.5, size.height);
     darkCurvePath.quadraticBezierTo(
         size.width * 0.8, size.height * 0.7, size.width, size.height * 0.8);
     darkCurvePath.lineTo(size.width, size.height);
     darkCurvePath.close();
-
     canvas.drawPath(darkCurvePath, darkCurvePaint);
   }
 
