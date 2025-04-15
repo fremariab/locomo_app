@@ -1,25 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:locomo_app/screens/nearest_stations.dart';
-import 'package:locomo_app/screens/faqs.dart';
-import 'package:locomo_app/screens/user_profile.dart';
 import 'package:locomo_app/screens/search.dart';
 import 'package:locomo_app/screens/trip_details.dart';
-import 'package:locomo_app/widgets/MainScaffold.dart';
+import 'package:locomo_app/widgets/main_scaffold.dart';
 import 'package:locomo_app/services/database_helper.dart';
 import 'package:locomo_app/services/connectivity_service.dart';
 import 'package:locomo_app/models/route.dart';
 
 class SavedLocationsScreen extends StatefulWidget {
-  const SavedLocationsScreen({Key? key}) : super(key: key);
+  const SavedLocationsScreen({super.key});
 
   @override
   _SavedLocationsScreenState createState() => _SavedLocationsScreenState();
 }
 
 class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
-  int _currentIndex = 1;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   bool _isLoading = true;
@@ -31,24 +27,6 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
   static const Color white = Colors.white;
   static const Color darkGrey = Color(0xFF656565);
   static const Color lightGrey = Color(0xFFD9D9D9);
-  static const Color iconGrey = Color(0xFF656565);
-  static const Color textPrimary = Colors.black87;
-  static const Color textSecondary = Colors.black54;
-
-  // Styles
-  static const TextStyle subheading = TextStyle(
-    fontSize: 16.0,
-    fontWeight: FontWeight.w500,
-    color: textPrimary,
-  );
-
-  static const TextStyle caption = TextStyle(
-    fontSize: 12.0,
-    color: textSecondary,
-  );
-
-  // Get the current user's ID
-  String? get currentUserId => _auth.currentUser?.uid;
 
   @override
   void initState() {
@@ -56,50 +34,52 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
     _checkConnectivity();
     _loadFavoriteRoutes();
     
-    // Listen for connectivity changes
     ConnectivityService().connectivityStream.listen((isOnline) {
-      setState(() {
-        _isOnline = isOnline;
-      });
+      if (mounted) {
+        setState(() {
+          _isOnline = isOnline;
+        });
+      }
       
-      // If we're back online, sync any unsynced routes
       if (_isOnline) {
         _syncUnsyncedRoutes();
       }
     });
   }
 
-  // Check if we're online
   Future<void> _checkConnectivity() async {
     final isConnected = await ConnectivityService().isConnected();
-    setState(() {
-      _isOnline = isConnected;
-    });
+    if (mounted) {
+      setState(() {
+        _isOnline = isConnected;
+      });
+    }
   }
 
-  // Load favorite routes from local database and Firestore
   Future<void> _loadFavoriteRoutes() async {
-    if (currentUserId == null) {
-      setState(() {
-        _isLoading = false;
-      });
+    if (_auth.currentUser?.uid == null) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
       return;
     }
 
     try {
-      // First, load from local database
-      final localRoutes = await DatabaseHelper().getFavoriteRoutes(currentUserId!);
+      final localRoutes = await DatabaseHelper().getFavoriteRoutes(_auth.currentUser!.uid);
       
-      setState(() {
-        _favoriteRoutes = localRoutes;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _favoriteRoutes = localRoutes;
+          _isLoading = false;
+        });
+      }
       
-      // If we're online, also load from Firestore and merge
       if (_isOnline) {
         final snapshot = await _firestore
             .collection('users')
-            .doc(currentUserId)
+            .doc(_auth.currentUser!.uid)
             .collection('favorite_routes')
             .orderBy('createdAt', descending: true)
             .get();
@@ -116,7 +96,6 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
           };
         }).toList();
         
-        // Merge Firestore routes with local routes, avoiding duplicates
         final mergedRoutes = List<Map<String, dynamic>>.from(_favoriteRoutes);
         
         for (final route in firestoreRoutes) {
@@ -125,39 +104,40 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
           }
         }
         
-        setState(() {
-          _favoriteRoutes = mergedRoutes;
-        });
+        if (mounted) {
+          setState(() {
+            _favoriteRoutes = mergedRoutes;
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error loading favorite routes: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  // Sync unsynced routes to Firestore
   Future<void> _syncUnsyncedRoutes() async {
-    if (currentUserId == null || !_isOnline) return;
+    if (_auth.currentUser?.uid == null || !_isOnline) return;
     
     try {
       final unsyncedRoutes = await DatabaseHelper().getUnsyncedFavoriteRoutes();
       
       for (final route in unsyncedRoutes) {
-        // Check if this route already exists in Firestore
         final existingRoutes = await _firestore
             .collection('users')
-            .doc(currentUserId)
+            .doc(_auth.currentUser!.uid)
             .collection('favorite_routes')
             .doc(route['id'])
             .get();
             
         if (!existingRoutes.exists) {
-          // Add to Firestore
           await _firestore
               .collection('users')
-              .doc(currentUserId)
+              .doc(_auth.currentUser!.uid)
               .collection('favorite_routes')
               .doc(route['id'])
               .set({
@@ -165,15 +145,13 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
             'destination': route['destination'],
             'fare': route['fare'],
             'createdAt': FieldValue.serverTimestamp(),
-            'userId': currentUserId,
+            'userId': _auth.currentUser!.uid,
           });
           
-          // Mark as synced in local database
           await DatabaseHelper().markFavoriteRouteAsSynced(route['id']);
         }
       }
       
-      // Reload routes after syncing
       _loadFavoriteRoutes();
     } catch (e) {
       debugPrint('Error syncing routes: $e');
@@ -195,7 +173,6 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
               color: Colors.white,
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              fontFamily: 'Poppins',
             ),
           ),
           centerTitle: false,
@@ -212,7 +189,7 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
         ),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : currentUserId == null
+            : _auth.currentUser == null
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -234,7 +211,6 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
                         ElevatedButton(
                           onPressed: () {
                             // Navigate to sign in screen
-                            // This would depend on your app's authentication flow
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFC32E31),
@@ -248,7 +224,6 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
                               color: Colors.white,
                               fontSize: 16,
                               fontWeight: FontWeight.normal,
-                              fontFamily: 'Poppins',
                             ),
                           ),
                         ),
@@ -295,7 +270,6 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
                                   color: Colors.white,
                                   fontSize: 16,
                                   fontWeight: FontWeight.normal,
-                                  fontFamily: 'Poppins',
                                 ),
                               ),
                             ),
@@ -347,7 +321,6 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
                                 onPressed: () => _deleteFavoriteRoute(route['id']),
                               ),
                               onTap: () {
-                                // Navigate to trip details page instead of search page
                                 if (route['routeData'] != null) {
                                   Navigator.push(
                                     context,
@@ -359,7 +332,6 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
                                     ),
                                   );
                                 } else {
-                                  // Fallback to search page if route data is not available
                                   Navigator.pushReplacement(
                                     context,
                                     MaterialPageRoute(
@@ -379,291 +351,53 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
     );
   }
 
-  // Delete a favorite route
   Future<void> _deleteFavoriteRoute(String routeId) async {
-    if (currentUserId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please sign in to manage your favorites'),
-          backgroundColor: Color(0xFFC32E31),
-        ),
-      );
+    if (_auth.currentUser?.uid == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please sign in to manage your favorites'),
+            backgroundColor: Color(0xFFC32E31),
+          ),
+        );
+      }
       return;
     }
 
     try {
-      // Delete from local database first
       await DatabaseHelper().deleteFavoriteRoute(routeId);
       
-      // If online, also delete from Firestore
       if (_isOnline) {
         await _firestore
             .collection('users')
-            .doc(currentUserId)
+            .doc(_auth.currentUser!.uid)
             .collection('favorite_routes')
             .doc(routeId)
             .delete();
       }
 
-      setState(() {
-        _favoriteRoutes.removeWhere((route) => route['id'] == routeId);
-      });
+      if (mounted) {
+        setState(() {
+          _favoriteRoutes.removeWhere((route) => route['id'] == routeId);
+        });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Route removed from favorites'),
-          backgroundColor: Color(0xFFC32E31),
-        ),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Route removed from favorites'),
+            backgroundColor: Color(0xFFC32E31),
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('Error deleting favorite route: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to remove route: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to remove route: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
-  }
-
-  // Show dialog to add a new saved location
-  void _showAddLocationDialog(BuildContext context) {
-    final nameController = TextEditingController();
-    final addressController = TextEditingController();
-    String selectedType = 'home';
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Saved Location'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name (e.g. Home, Work)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: addressController,
-              decoration: const InputDecoration(
-                labelText: 'Address',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: selectedType,
-              decoration: const InputDecoration(
-                labelText: 'Type',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'home', child: Text('Home')),
-                DropdownMenuItem(value: 'work', child: Text('Work')),
-                DropdownMenuItem(value: 'other', child: Text('Other')),
-              ],
-              onChanged: (value) {
-                selectedType = value!;
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (nameController.text.isNotEmpty && addressController.text.isNotEmpty) {
-                _addSavedLocation(
-                  nameController.text,
-                  addressController.text,
-                  selectedType,
-                );
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Add a new saved location to Firebase
-  Future<void> _addSavedLocation(String name, String address, String type) async {
-    if (currentUserId == null) return;
-
-    await _firestore
-        .collection('users')
-        .doc(currentUserId)
-        .collection('saved_locations')
-        .add({
-      'name': name,
-      'address': address,
-      'type': type,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Location saved successfully')),
-    );
-  }
-}
-
-// Widget for displaying a saved location
-class StationListItem extends StatelessWidget {
-  final String name;
-  final String? distance;
-  final IconData icon;
-  final Color? iconColor;
-  final VoidCallback onTap;
-  final VoidCallback? onDelete;
-
-  const StationListItem({
-    Key? key,
-    required this.name,
-    this.distance,
-    required this.icon,
-    this.iconColor,
-    required this.onTap,
-    this.onDelete,
-  }) : super(key: key);
-
-  static const Color lightGrey = Color(0xFFD9D9D9);
-  static const Color iconGrey = Color(0xFF656565);
-  static const Color textPrimary = Colors.black87;
-  static const Color textSecondary = Colors.black54;
-
-  static const TextStyle subheading = TextStyle(
-    fontSize: 16.0,
-    fontWeight: FontWeight.w500,
-    color: textPrimary,
-  );
-
-  static const TextStyle caption = TextStyle(
-    fontSize: 12.0,
-    color: textSecondary,
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: lightGrey, width: 1),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: iconColor ?? Color(0xFFC32E31),
-              size: 24.0,
-            ),
-            const SizedBox(width: 16.0),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name, style: subheading),
-                  if (distance != null) Text(distance!, style: caption),
-                ],
-              ),
-            ),
-            if (onDelete != null)
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                onPressed: onDelete,
-              )
-            else
-              const Icon(Icons.chevron_right, color: iconGrey),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Widget for displaying a favorite route
-class RouteListItem extends StatelessWidget {
-  final String origin;
-  final String destination;
-  final String fare;
-  final VoidCallback onTap;
-  final VoidCallback? onDelete;
-
-  const RouteListItem({
-    Key? key,
-    required this.origin,
-    required this.destination,
-    required this.fare,
-    required this.onTap,
-    this.onDelete,
-  }) : super(key: key);
-
-  static const Color lightGrey = Color(0xFFD9D9D9);
-  static const Color iconGrey = Color(0xFF656565);
-  static const Color textPrimary = Colors.black87;
-  static const Color textSecondary = Colors.black54;
-
-  static const TextStyle subheading = TextStyle(
-    fontSize: 16.0,
-    fontWeight: FontWeight.w500,
-    color: textPrimary,
-  );
-
-  static const TextStyle caption = TextStyle(
-    fontSize: 12.0,
-    color: textSecondary,
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: lightGrey, width: 1),
-          ),
-        ),
-        child: Row(
-          children: [
-            const Icon(
-              Icons.directions_bus,
-              color: Color(0xFFC32E31),
-              size: 24.0,
-            ),
-            const SizedBox(width: 16.0),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('$origin → $destination', style: subheading),
-                  Text('Fare: GHS $fare', style: caption),
-                ],
-              ),
-            ),
-            if (onDelete != null)
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                onPressed: onDelete,
-              )
-            else
-              const Icon(Icons.chevron_right, color: iconGrey),
-          ],
-        ),
-      ),
-    );
   }
 }

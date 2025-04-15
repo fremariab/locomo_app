@@ -1,92 +1,83 @@
 // import 'package:locomo_app/models/route.dart';
-
 // import 'package:locomo_app/services/database_helper.dart';
 // import 'package:locomo_app/services/connectivity_service.dart';
-
-// import 'search_results.dart';
+// import 'package:locomo_app/screens/station_detail_screen.dart';
+// import 'package:locomo_app/screens/search_results.dart';
 // import 'package:flutter/material.dart';
 // import 'package:locomo_app/services/map_service.dart';
 // import 'package:locomo_app/services/route_service.dart';
 // import 'package:locomo_app/models/station_model.dart';
 // import 'package:flutter/services.dart';
-// import 'package:locomo_app/widgets/MainScaffold.dart' as widgets;
 // import 'package:firebase_auth/firebase_auth.dart';
 // import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:uuid/uuid.dart';
 // import 'dart:math';
+// import 'package:locomo_app/widgets/main_scaffold.dart'; 
+
 
 // class TravelHomePage extends StatefulWidget {
 //   final String? initialOrigin;
 //   final String? initialDestination;
 
 //   const TravelHomePage({
-//     Key? key,
+//     super.key,
 //     this.initialOrigin,
 //     this.initialDestination,
-//   }) : super(key: key);
+//   });
 
 //   @override
 //   State<TravelHomePage> createState() => _TravelHomePageState();
 // }
 
 // class _TravelHomePageState extends State<TravelHomePage> {
-//   List<String> _allLocations = [];
+//   List<TrotroStation> _allStations = [];
 //   String? _selectedOrigin;
 //   String? _selectedDestination;
-//   final TextEditingController _controller =
-//       TextEditingController(); // Budget controller
+//   final TextEditingController _controller = TextEditingController();
 //   final FirebaseAuth _auth = FirebaseAuth.instance;
 //   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-//   List<CompositeRoute> _compositeRoutes = [];
 
 //   @override
 //   void initState() {
 //     super.initState();
-//     // Pre-fill the origin and destination if provided
 //     _loadLocations();
+//     _loadAllStations();
 //   }
 
-//   Future<void> _loadLocations() async {
-//     try {
-//       // Get user location - ensure this returns a LatLng or similar object
-//       final userLocation = await MapService.getUserLocation();
-//       final stations = await RouteService.getAllStationsAndStops();
-
+//   Future<void> _loadAllStations() async {
+//     final stations = await RouteService.getAllStationsAndStops();
+//     if (mounted) {
 //       setState(() {
-//         _allLocations = stations.map((s) => s.name).toList();
-
-//         // Only set closest stations if we have user location
-//         if (userLocation != null) {
-//           _selectedOrigin = _findClosest(
-//               stations, userLocation.latitude, userLocation.longitude);
-//           // Set destination to null or find another close station
-//           _selectedDestination = null;
-//         } else {
-//           // Fallback to first station if no location available
-//           _selectedOrigin = stations.isNotEmpty ? stations.first.name : null;
-//           _selectedDestination = null;
-//         }
-//       });
-//     } catch (e) {
-//       debugPrint('Error loading locations: $e');
-//       // Fallback to loading just station names
-//       final stations = await RouteService.getAllStationsAndStops();
-//       setState(() {
-//         _allLocations = stations.map((s) => s.name).toList();
-//         _selectedOrigin = stations.isNotEmpty ? stations.first.name : null;
-//         _selectedDestination = null;
+//         _allStations = stations;
 //       });
 //     }
 //   }
 
-//   // Get the current user's ID
-//   String? get currentUserId => _auth.currentUser?.uid;
+//   Future<void> _loadLocations() async {
+//     final locationString = await MapService.getUserLocation();
+//     final stations = await RouteService.getAllStationsAndStops();
+
+//     if (locationString == null) {
+//       debugPrint("User location is null. Cannot determine closest station.");
+//       return;
+//     }
+
+//     final parts = locationString.split(',');
+//     final double userLat = double.parse(parts[0]);
+//     final double userLng = double.parse(parts[1]);
+
+//     if (mounted) {
+//       setState(() {
+//         _selectedOrigin = _findClosest(stations, userLat, userLng);
+//         _selectedDestination = _findClosest(stations, userLat, userLng);
+//       });
+//     }
+//   }
 
 //   @override
 //   Widget build(BuildContext context) {
-//     return widgets.MainScaffold(
-//       currentIndex: 0,
-//       child: SafeArea(
+//     return Scaffold( // Temporarily replaced MainScaffold with Scaffold
+//       body: SafeArea(
 //         child: SingleChildScrollView(
 //           child: Column(
 //             crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,7 +107,6 @@
 //                             color: Colors.white,
 //                             fontSize: 24,
 //                             fontWeight: FontWeight.bold,
-//                             fontFamily: 'Poppins',
 //                           ),
 //                         ),
 //                       ],
@@ -129,28 +119,20 @@
 //                 child: Column(
 //                   crossAxisAlignment: CrossAxisAlignment.start,
 //                   children: [
-//                     DropdownButtonFormField<String>(
-//                       value: _selectedOrigin,
-//                       decoration: InputDecoration(labelText: 'Origin'),
-//                       items: _allLocations
-//                           .map((loc) => DropdownMenuItem(
-//                                 value: loc,
-//                                 child: Text(loc),
-//                               ))
-//                           .toList(),
+//                     TextField(
+//                       decoration: const InputDecoration(
+//                         labelText: 'Origin',
+//                         border: OutlineInputBorder(),
+//                       ),
 //                       onChanged: (val) => setState(() => _selectedOrigin = val),
 //                     ),
 //                     const SizedBox(height: 16),
-//                     DropdownButtonFormField<String>(
-//                       value: _selectedOrigin,
-//                       decoration: InputDecoration(labelText: 'Destination'),
-//                       items: _allLocations
-//                           .map((loc) => DropdownMenuItem(
-//                                 value: loc,
-//                                 child: Text(loc),
-//                               ))
-//                           .toList(),
-//                       onChanged: (val) => setState(() => _selectedOrigin = val),
+//                     TextField(
+//                       decoration: const InputDecoration(
+//                         labelText: 'Destination',
+//                         border: OutlineInputBorder(),
+//                       ),
+//                       onChanged: (val) => setState(() => _selectedDestination = val),
 //                     ),
 //                     const SizedBox(height: 16),
 //                     Row(
@@ -165,16 +147,13 @@
 //                               labelStyle: TextStyle(
 //                                 color: Color(0xFFD9D9D9),
 //                                 fontWeight: FontWeight.w200,
-//                                 fontFamily: 'Poppins',
 //                                 fontSize: 16,
 //                               ),
 //                               enabledBorder: OutlineInputBorder(
-//                                 borderSide:
-//                                     BorderSide(color: Color(0xFFD9D9D9)),
+//                                 borderSide: BorderSide(color: Color(0xFFD9D9D9)),
 //                               ),
 //                               focusedBorder: OutlineInputBorder(
-//                                 borderSide:
-//                                     BorderSide(color: Color(0xFFD9D9D9)),
+//                                 borderSide: BorderSide(color: Color(0xFFD9D9D9)),
 //                               ),
 //                               contentPadding: EdgeInsets.symmetric(
 //                                   horizontal: 16, vertical: 12),
@@ -182,7 +161,6 @@
 //                             style: const TextStyle(
 //                               color: Colors.black,
 //                               fontSize: 16,
-//                               fontFamily: 'Poppins',
 //                               fontWeight: FontWeight.w400,
 //                             ),
 //                             value: 'lowest_fare',
@@ -219,16 +197,13 @@
 //                               labelStyle: TextStyle(
 //                                 color: Color(0xFFD9D9D9),
 //                                 fontWeight: FontWeight.w200,
-//                                 fontFamily: 'Poppins',
 //                                 fontSize: 16,
 //                               ),
 //                               enabledBorder: OutlineInputBorder(
-//                                 borderSide:
-//                                     BorderSide(color: Color(0xFFD9D9D9)),
+//                                 borderSide: BorderSide(color: Color(0xFFD9D9D9)),
 //                               ),
 //                               focusedBorder: OutlineInputBorder(
-//                                 borderSide:
-//                                     BorderSide(color: Color(0xFFD9D9D9)),
+//                                 borderSide: BorderSide(color: Color(0xFFD9D9D9)),
 //                               ),
 //                               contentPadding: EdgeInsets.symmetric(
 //                                   horizontal: 16, vertical: 12),
@@ -236,7 +211,6 @@
 //                             style: const TextStyle(
 //                               color: Colors.black,
 //                               fontSize: 16,
-//                               fontFamily: 'Poppins',
 //                               fontWeight: FontWeight.w400,
 //                             ),
 //                           ),
@@ -254,7 +228,7 @@
 
 //                           if (origin == null || destination == null) {
 //                             ScaffoldMessenger.of(context).showSnackBar(
-//                               SnackBar(
+//                               const SnackBar(
 //                                   content: Text(
 //                                       "Please select both origin and destination")),
 //                             );
@@ -262,13 +236,11 @@
 //                           }
 
 //                           try {
-//                             // Use the composite route search that includes walking segments.
 //                             final compositeRoutes =
 //                                 await RouteService.searchCompositeRoutes(
 //                               origin: origin,
 //                               destination: destination,
-//                               preference:
-//                                   'lowest_fare', // or get it from your dropdown
+//                               preference: 'lowest_fare',
 //                               budget: double.tryParse(_controller.text.trim()),
 //                             );
 
@@ -281,7 +253,6 @@
 //                               return;
 //                             }
 
-//                             // Save search results for offline viewing
 //                             final String searchId = const Uuid().v4();
 //                             await DatabaseHelper().saveOfflineRoute(
 //                               id: searchId,
@@ -299,8 +270,7 @@
 //                               context,
 //                               MaterialPageRoute(
 //                                 builder: (_) => TravelResultsPage(
-//                                   results:
-//                                       compositeRoutes.cast<CompositeRoute>(),
+//                                   results: compositeRoutes,
 //                                   origin: origin,
 //                                   destination: destination,
 //                                   onSaveRoute: _saveRouteToFavorites,
@@ -308,12 +278,10 @@
 //                               ),
 //                             );
 //                           } catch (e) {
-//                             // Check if we're offline and try to load from local database
 //                             final isOnline =
 //                                 await ConnectivityService().isConnected();
 
 //                             if (!isOnline) {
-//                               // Try to load from local database
 //                               final offlineRoutes =
 //                                   await DatabaseHelper().getOfflineRoutes();
 //                               final matchingRoutes = offlineRoutes
@@ -323,24 +291,20 @@
 //                                   .toList();
 
 //                               if (matchingRoutes.isNotEmpty) {
-//                                 // Use the most recent matching route
 //                                 final routeData = matchingRoutes
 //                                     .first['routeData'] as Map<String, dynamic>;
 //                                 final routesJson =
 //                                     routeData['routes'] as List<dynamic>;
 
-//                                 // Convert JSON back to CompositeRoute objects
 //                                 final compositeRoutes = routesJson
-//                                     .map(
-//                                         (json) => CompositeRoute.fromJson(json))
+//                                     .map((json) => CompositeRoute.fromJson(json))
 //                                     .toList();
 
 //                                 Navigator.push(
 //                                   context,
 //                                   MaterialPageRoute(
 //                                     builder: (_) => TravelResultsPage(
-//                                       results: compositeRoutes
-//                                           .cast<CompositeRoute>(),
+//                                       results: compositeRoutes,
 //                                       origin: origin,
 //                                       destination: destination,
 //                                       onSaveRoute: _saveRouteToFavorites,
@@ -367,7 +331,6 @@
 //                           backgroundColor: const Color(0xFFC32E31),
 //                           shape: RoundedRectangleBorder(
 //                             borderRadius: BorderRadius.circular(8),
-//                           ),
 //                         ),
 //                         child: const Text(
 //                           'Search',
@@ -375,7 +338,6 @@
 //                             color: Colors.white,
 //                             fontSize: 18,
 //                             fontWeight: FontWeight.normal,
-//                             fontFamily: 'Poppins',
 //                           ),
 //                         ),
 //                       ),
@@ -391,18 +353,25 @@
 //                           style: TextStyle(
 //                             fontSize: 18,
 //                             fontWeight: FontWeight.w600,
-//                             fontFamily: 'Poppins',
 //                           ),
 //                         ),
 //                         TextButton(
-//                           onPressed: () {},
+//                           onPressed: () {
+//                             Navigator.push(
+//                               context,
+//                               MaterialPageRoute(
+//                                 builder: (_) => StationsListScreen(
+//                                   stations: _allStations,
+//                                 ),
+//                               ),
+//                             );
+//                           },
 //                           child: const Text(
 //                             'See All',
 //                             style: TextStyle(
 //                               color: Color(0xFFC32E31),
 //                               fontWeight: FontWeight.w500,
 //                               fontSize: 13,
-//                               fontFamily: 'Poppins',
 //                             ),
 //                           ),
 //                         ),
@@ -417,11 +386,13 @@
 //                           StationCard(
 //                             imagePath: 'assets/images/onboarding11.png',
 //                             stationName: 'Shiashie Station',
+//                             onTap: () => _navigateToStationDetail('Shiashie Station'),
 //                           ),
 //                           const SizedBox(width: 12),
 //                           StationCard(
 //                             imagePath: 'assets/images/onboarding8.jpg',
 //                             stationName: 'Kaneshie Station',
+//                             onTap: () => _navigateToStationDetail('Kaneshie Station'),
 //                           ),
 //                         ],
 //                       ),
@@ -436,40 +407,48 @@
 //     );
 //   }
 
-//   String _findClosest(
-//       List<TrotroStation> stations, double userLat, double userLng) {
-//     double _toRadians(double degree) => degree * (pi / 180); // 👈 Move this up
+//   Future<void> _navigateToStationDetail(String stationName) async {
+//     try {
+//       final station = _allStations.firstWhere(
+//         (s) => s.name == stationName,
+//         orElse: () => TrotroStation.temporary(
+//           name: stationName,
+//           latitude: 0.0,
+//           longitude: 0.0,
+//         ),
+//       );
 
-//     double calculateDistance(
-//         double lat1, double lon1, double lat2, double lon2) {
-//       const earthRadius = 6371;
-//       final dLat = _toRadians(lat2 - lat1);
-//       final dLon = _toRadians(lon2 - lon1);
-//       final a = sin(dLat / 2) * sin(dLat / 2) +
-//           cos(_toRadians(lat1)) *
-//               cos(_toRadians(lat2)) *
-//               sin(dLon / 2) *
-//               sin(dLon / 2);
-//       final c = 2 * atan2(sqrt(a), sqrt(1 - a));
-//       return earthRadius * c;
+//       Navigator.push(
+//         context,
+//         MaterialPageRoute(
+//           builder: (_) => StationDetailScreen(station: station),
+//         ),
+//       );
+//     } catch (e) {
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         SnackBar(
+//           content: Text('Error loading station details: $e'),
+//           backgroundColor: Colors.red,
+//         ),
+//       );
 //     }
+//   }
 
+//   String _findClosest(List<TrotroStation> stations, double userLat, double userLng) {
+//     if (stations.isEmpty) return '';
+    
 //     stations.sort((a, b) {
-//       final distA =
-//           calculateDistance(userLat, userLng, a.latitude, a.longitude);
-//       final distB =
-//           calculateDistance(userLat, userLng, b.latitude, b.longitude);
+//       final distA = a.distanceTo(userLat, userLng);
+//       final distB = b.distanceTo(userLat, userLng);
 //       return distA.compareTo(distB);
 //     });
 
-//     return stations.isNotEmpty ? stations.first.name : '';
+//     return stations.first.name;
 //   }
 
-//   // Save a route to the user's favorites
 //   Future<void> _saveRouteToFavorites(
 //       String origin, String destination, double fare) async {
-//     // Check if user is signed in
-//     if (currentUserId == null) {
+//     if (_auth.currentUser?.uid == null) {
 //       ScaffoldMessenger.of(context).showSnackBar(
 //         const SnackBar(
 //           content: Text('Please sign in to save routes'),
@@ -480,7 +459,6 @@
 //     }
 
 //     try {
-//       // Create a basic route object since we don't have the full route data here
 //       final routeMap = {
 //         'segments': [],
 //         'totalFare': fare,
@@ -491,10 +469,9 @@
 //         'destination': destination,
 //       };
 
-//       // Check if this route is already saved for this specific user
 //       final existingRoutes = await _firestore
 //           .collection('users')
-//           .doc(currentUserId)
+//           .doc(_auth.currentUser!.uid)
 //           .collection('favorite_routes')
 //           .where('origin', isEqualTo: origin)
 //           .where('destination', isEqualTo: destination)
@@ -510,10 +487,9 @@
 //         return;
 //       }
 
-//       // Save the new route to the specific user's collection
 //       await _firestore
 //           .collection('users')
-//           .doc(currentUserId)
+//           .doc(_auth.currentUser!.uid)
 //           .collection('favorite_routes')
 //           .add({
 //         'origin': origin,
@@ -521,14 +497,13 @@
 //         'fare': fare,
 //         'routeData': routeMap,
 //         'createdAt': FieldValue.serverTimestamp(),
-//         'userId': currentUserId, // Add user ID for additional security
+//         'userId': _auth.currentUser!.uid,
 //       });
 
-//       // Also save to local database for offline access
 //       final routeId = DateTime.now().millisecondsSinceEpoch.toString();
 //       await DatabaseHelper().addFavoriteRoute(
 //         id: routeId,
-//         userId: currentUserId!,
+//         userId: _auth.currentUser!.uid,
 //         origin: origin,
 //         destination: destination,
 //         fare: fare,
@@ -557,56 +532,60 @@
 // class StationCard extends StatelessWidget {
 //   final String imagePath;
 //   final String stationName;
+//   final VoidCallback? onTap;
 
 //   const StationCard({
-//     Key? key,
+//     super.key,
 //     required this.imagePath,
 //     required this.stationName,
-//   }) : super(key: key);
+//     this.onTap,
+//   });
 
 //   @override
 //   Widget build(BuildContext context) {
-//     return Container(
-//       width: 160,
-//       height: 180,
-//       clipBehavior: Clip.hardEdge,
-//       decoration: BoxDecoration(
-//         borderRadius: BorderRadius.circular(8),
-//       ),
-//       child: Stack(
-//         fit: StackFit.expand,
-//         children: [
-//           Image.asset(
-//             imagePath,
-//             fit: BoxFit.cover,
-//           ),
-//           Container(
-//             decoration: BoxDecoration(
-//               gradient: LinearGradient(
-//                 begin: Alignment.topCenter,
-//                 end: Alignment.bottomCenter,
-//                 colors: [
-//                   Colors.transparent,
-//                   Colors.black.withOpacity(0.7),
-//                 ],
+//     return GestureDetector(
+//       onTap: onTap,
+//       child: Container(
+//         width: 160,
+//         height: 180,
+//         clipBehavior: Clip.hardEdge,
+//         decoration: BoxDecoration(
+//           borderRadius: BorderRadius.circular(8),
+//         ),
+//         child: Stack(
+//           fit: StackFit.expand,
+//           children: [
+//             Image.asset(
+//               imagePath,
+//               fit: BoxFit.cover,
+//             ),
+//             Container(
+//               decoration: BoxDecoration(
+//                 gradient: LinearGradient(
+//                   begin: Alignment.topCenter,
+//                   end: Alignment.bottomCenter,
+//                   colors: [
+//                     Colors.transparent,
+//                     Colors.black.withOpacity(0.7),
+//                   ],
+//                 ),
 //               ),
 //             ),
-//           ),
-//           Positioned(
-//             bottom: 12,
-//             left: 12,
-//             right: 12,
-//             child: Text(
-//               stationName,
-//               style: const TextStyle(
-//                 color: Colors.white,
-//                 fontWeight: FontWeight.w600,
-//                 fontSize: 15,
-//                 fontFamily: 'Poppins',
+//             Positioned(
+//               bottom: 12,
+//               left: 12,
+//               right: 12,
+//               child: Text(
+//                 stationName,
+//                 style: const TextStyle(
+//                   color: Colors.white,
+//                   fontWeight: FontWeight.w600,
+//                   fontSize: 15,
+//                 ),
 //               ),
 //             ),
-//           ),
-//         ],
+//           ],
+//         ),
 //       ),
 //     );
 //   }
@@ -615,13 +594,11 @@
 // class RedCurvePainter extends CustomPainter {
 //   @override
 //   void paint(Canvas canvas, Size size) {
-//     // Base color background
 //     final Paint basePaint = Paint()
 //       ..color = const Color(0xFFB22A2D)
 //       ..style = PaintingStyle.fill;
 //     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), basePaint);
 
-//     // Light red curve
 //     final Paint lightCurvePaint = Paint()
 //       ..color = const Color(0xFFC32E31)
 //       ..style = PaintingStyle.fill;
@@ -634,7 +611,6 @@
 //     lightCurvePath.close();
 //     canvas.drawPath(lightCurvePath, lightCurvePaint);
 
-//     // Darker bottom curve
 //     final Paint darkCurvePaint = Paint()
 //       ..color = const Color(0xFF9E2528)
 //       ..style = PaintingStyle.fill;
@@ -650,82 +626,121 @@
 //   @override
 //   bool shouldRepaint(CustomPainter oldDelegate) => false;
 // }
-import 'package:locomo_app/models/route.dart';
 
+// class StationsListScreen extends StatelessWidget {
+//   final List<TrotroStation> stations;
+
+//   const StationsListScreen({
+//     super.key,
+//     required this.stations,
+//   });
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('All Stations'),
+//         backgroundColor: const Color(0xFFC32E31),
+//       ),
+//       body: ListView.builder(
+//         itemCount: stations.length,
+//         itemBuilder: (context, index) {
+//           final station = stations[index];
+//           return ListTile(
+//             title: Text(station.name),
+//             subtitle: Text(station.description ?? ''),
+//             onTap: () {
+//               Navigator.push(
+//                 context,
+//                 MaterialPageRoute(
+//                   builder: (_) => StationDetailScreen(station: station),
+//                 ),
+//               );
+//             },
+//           );
+//         },
+//       ),
+//     );
+//   }
+// }
+
+import 'package:locomo_app/models/route.dart';
 import 'package:locomo_app/services/database_helper.dart';
 import 'package:locomo_app/services/connectivity_service.dart';
-
-import 'search_results.dart';
+import 'package:locomo_app/screens/station_detail_screen.dart';
+import 'package:locomo_app/screens/search_results.dart' as search_results;
 import 'package:flutter/material.dart';
 import 'package:locomo_app/services/map_service.dart';
 import 'package:locomo_app/services/route_service.dart';
 import 'package:locomo_app/models/station_model.dart';
 import 'package:flutter/services.dart';
-import 'package:locomo_app/widgets/MainScaffold.dart' as widgets;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
-import 'dart:math';
+import 'package:locomo_app/widgets/main_scaffold.dart';
 
 class TravelHomePage extends StatefulWidget {
   final String? initialOrigin;
   final String? initialDestination;
 
   const TravelHomePage({
-    Key? key,
+    super.key,
     this.initialOrigin,
     this.initialDestination,
-  }) : super(key: key);
+  });
 
   @override
   State<TravelHomePage> createState() => _TravelHomePageState();
 }
 
 class _TravelHomePageState extends State<TravelHomePage> {
-  List<String> _allLocations = [];
-  List<TrotroStation> _allStations = []; // Add this line to store all stations
+  List<TrotroStation> _allStations = [];
   String? _selectedOrigin;
   String? _selectedDestination;
-  final TextEditingController _controller =
-      TextEditingController(); // Budget controller
+  final TextEditingController _controller = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  List<CompositeRoute> _compositeRoutes = [];
 
   @override
   void initState() {
     super.initState();
-    // Pre-fill the origin and destination if provided
     _loadLocations();
+    _loadAllStations();
+  }
+
+  Future<void> _loadAllStations() async {
+    final stations = await RouteService.getAllStationsAndStops();
+    if (mounted) {
+      setState(() {
+        _allStations = stations;
+      });
+    }
   }
 
   Future<void> _loadLocations() async {
-  final locationString = await MapService.getUserLocation();
-  final stations = await RouteService.getAllStationsAndStops();
+    final locationString = await MapService.getUserLocation();
+    final stations = await RouteService.getAllStationsAndStops();
 
-  if (locationString == null) {
-    debugPrint("User location is null. Cannot determine closest station.");
-    return;
+    if (locationString == null) {
+      debugPrint("User location is null. Cannot determine closest station.");
+      return;
+    }
+
+    final parts = locationString.split(',');
+    final double userLat = double.parse(parts[0]);
+    final double userLng = double.parse(parts[1]);
+
+    if (mounted) {
+      setState(() {
+        _selectedOrigin = _findClosest(stations, userLat, userLng);
+        _selectedDestination = _findClosest(stations, userLat, userLng);
+      });
+    }
   }
-
-  final parts = locationString.split(',');
-  final double userLat = double.parse(parts[0]);
-  final double userLng = double.parse(parts[1]);
-
-  setState(() {
-    _allLocations = stations.map((s) => s.name).toList();
-    _selectedOrigin = _findClosest(stations, userLat, userLng);
-    _selectedDestination = _findClosest(stations, userLat, userLng);
-  });
-}
-
-
-  // Get the current user's ID
-  String? get currentUserId => _auth.currentUser?.uid;
 
   @override
   Widget build(BuildContext context) {
-    return widgets.MainScaffold(
+    return MainScaffold(
       currentIndex: 0,
       child: SafeArea(
         child: SingleChildScrollView(
@@ -757,7 +772,6 @@ class _TravelHomePageState extends State<TravelHomePage> {
                             color: Colors.white,
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            fontFamily: 'Poppins',
                           ),
                         ),
                       ],
@@ -770,31 +784,20 @@ class _TravelHomePageState extends State<TravelHomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    DropdownButtonFormField<String>(
-                      value: _selectedOrigin,
-                      decoration: const InputDecoration(labelText: 'Origin'),
-                      items: _allLocations
-                          .map((loc) => DropdownMenuItem(
-                                value: loc,
-                                child: Text(loc),
-                              ))
-                          .toList(),
+                    TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'Origin',
+                        border: OutlineInputBorder(),
+                      ),
                       onChanged: (val) => setState(() => _selectedOrigin = val),
                     ),
                     const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      value:
-                          _selectedDestination, // Fix: use _selectedDestination instead of _selectedOrigin
-                      decoration:
-                          const InputDecoration(labelText: 'Destination'),
-                      items: _allLocations
-                          .map((loc) => DropdownMenuItem(
-                                value: loc,
-                                child: Text(loc),
-                              ))
-                          .toList(),
-                      onChanged: (val) => setState(() => _selectedDestination =
-                          val), // Fix: update _selectedDestination
+                    TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'Destination',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (val) => setState(() => _selectedDestination = val),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -809,16 +812,13 @@ class _TravelHomePageState extends State<TravelHomePage> {
                               labelStyle: TextStyle(
                                 color: Color(0xFFD9D9D9),
                                 fontWeight: FontWeight.w200,
-                                fontFamily: 'Poppins',
                                 fontSize: 16,
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderSide:
-                                    BorderSide(color: Color(0xFFD9D9D9)),
+                                borderSide: BorderSide(color: Color(0xFFD9D9D9)),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderSide:
-                                    BorderSide(color: Color(0xFFD9D9D9)),
+                                borderSide: BorderSide(color: Color(0xFFD9D9D9)),
                               ),
                               contentPadding: EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 12),
@@ -826,7 +826,6 @@ class _TravelHomePageState extends State<TravelHomePage> {
                             style: const TextStyle(
                               color: Colors.black,
                               fontSize: 16,
-                              fontFamily: 'Poppins',
                               fontWeight: FontWeight.w400,
                             ),
                             value: 'lowest_fare',
@@ -863,16 +862,13 @@ class _TravelHomePageState extends State<TravelHomePage> {
                               labelStyle: TextStyle(
                                 color: Color(0xFFD9D9D9),
                                 fontWeight: FontWeight.w200,
-                                fontFamily: 'Poppins',
                                 fontSize: 16,
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderSide:
-                                    BorderSide(color: Color(0xFFD9D9D9)),
+                                borderSide: BorderSide(color: Color(0xFFD9D9D9)),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderSide:
-                                    BorderSide(color: Color(0xFFD9D9D9)),
+                                borderSide: BorderSide(color: Color(0xFFD9D9D9)),
                               ),
                               contentPadding: EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 12),
@@ -880,7 +876,6 @@ class _TravelHomePageState extends State<TravelHomePage> {
                             style: const TextStyle(
                               color: Colors.black,
                               fontSize: 16,
-                              fontFamily: 'Poppins',
                               fontWeight: FontWeight.w400,
                             ),
                           ),
@@ -906,13 +901,11 @@ class _TravelHomePageState extends State<TravelHomePage> {
                           }
 
                           try {
-                            // Use the composite route search that includes walking segments.
                             final compositeRoutes =
                                 await RouteService.searchCompositeRoutes(
                               origin: origin,
                               destination: destination,
-                              preference:
-                                  'lowest_fare', // or get it from your dropdown
+                              preference: 'lowest_fare',
                               budget: double.tryParse(_controller.text.trim()),
                             );
 
@@ -925,7 +918,6 @@ class _TravelHomePageState extends State<TravelHomePage> {
                               return;
                             }
 
-                            // Save search results for offline viewing
                             final String searchId = const Uuid().v4();
                             await DatabaseHelper().saveOfflineRoute(
                               id: searchId,
@@ -942,9 +934,8 @@ class _TravelHomePageState extends State<TravelHomePage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => TravelResultsPage(
-                                  results:
-                                      compositeRoutes.cast<CompositeRoute>(),
+                                builder: (_) => search_results.TravelResultsPage(
+                                  results: compositeRoutes,
                                   origin: origin,
                                   destination: destination,
                                   onSaveRoute: _saveRouteToFavorites,
@@ -952,12 +943,10 @@ class _TravelHomePageState extends State<TravelHomePage> {
                               ),
                             );
                           } catch (e) {
-                            // Check if we're offline and try to load from local database
                             final isOnline =
                                 await ConnectivityService().isConnected();
 
                             if (!isOnline) {
-                              // Try to load from local database
                               final offlineRoutes =
                                   await DatabaseHelper().getOfflineRoutes();
                               final matchingRoutes = offlineRoutes
@@ -967,24 +956,20 @@ class _TravelHomePageState extends State<TravelHomePage> {
                                   .toList();
 
                               if (matchingRoutes.isNotEmpty) {
-                                // Use the most recent matching route
                                 final routeData = matchingRoutes
                                     .first['routeData'] as Map<String, dynamic>;
                                 final routesJson =
                                     routeData['routes'] as List<dynamic>;
 
-                                // Convert JSON back to CompositeRoute objects
                                 final compositeRoutes = routesJson
-                                    .map(
-                                        (json) => CompositeRoute.fromJson(json))
+                                    .map((json) => CompositeRoute.fromJson(json))
                                     .toList();
 
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => TravelResultsPage(
-                                      results: compositeRoutes
-                                          .cast<CompositeRoute>(),
+                                    builder: (_) => search_results.TravelResultsPage(
+                                      results: compositeRoutes,
                                       origin: origin,
                                       destination: destination,
                                       onSaveRoute: _saveRouteToFavorites,
@@ -1019,7 +1004,6 @@ class _TravelHomePageState extends State<TravelHomePage> {
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.normal,
-                            fontFamily: 'Poppins',
                           ),
                         ),
                       ),
@@ -1035,18 +1019,25 @@ class _TravelHomePageState extends State<TravelHomePage> {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
-                            fontFamily: 'Poppins',
                           ),
                         ),
                         TextButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => StationsListScreen(
+                                  stations: _allStations,
+                                ),
+                              ),
+                            );
+                          },
                           child: const Text(
                             'See All',
                             style: TextStyle(
                               color: Color(0xFFC32E31),
                               fontWeight: FontWeight.w500,
                               fontSize: 13,
-                              fontFamily: 'Poppins',
                             ),
                           ),
                         ),
@@ -1061,11 +1052,13 @@ class _TravelHomePageState extends State<TravelHomePage> {
                           StationCard(
                             imagePath: 'assets/images/onboarding11.png',
                             stationName: 'Shiashie Station',
+                            onTap: () => _navigateToStationDetail('Shiashie Station'),
                           ),
                           const SizedBox(width: 12),
                           StationCard(
                             imagePath: 'assets/images/onboarding8.jpg',
                             stationName: 'Kaneshie Station',
+                            onTap: () => _navigateToStationDetail('Kaneshie Station'),
                           ),
                         ],
                       ),
@@ -1080,40 +1073,48 @@ class _TravelHomePageState extends State<TravelHomePage> {
     );
   }
 
-  String _findClosest(
-      List<TrotroStation> stations, double userLat, double userLng) {
-    double _toRadians(double degree) => degree * (pi / 180);
+  Future<void> _navigateToStationDetail(String stationName) async {
+    try {
+      final station = _allStations.firstWhere(
+        (s) => s.name == stationName,
+        orElse: () => TrotroStation.temporary(
+          name: stationName,
+          latitude: 0.0,
+          longitude: 0.0,
+        ),
+      );
 
-    double calculateDistance(
-        double lat1, double lon1, double lat2, double lon2) {
-      const earthRadius = 6371;
-      final dLat = _toRadians(lat2 - lat1);
-      final dLon = _toRadians(lon2 - lon1);
-      final a = sin(dLat / 2) * sin(dLat / 2) +
-          cos(_toRadians(lat1)) *
-              cos(_toRadians(lat2)) *
-              sin(dLon / 2) *
-              sin(dLon / 2);
-      final c = 2 * atan2(sqrt(a), sqrt(1 - a));
-      return earthRadius * c;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => StationDetailScreen(station: station),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading station details: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
+  }
 
+  String _findClosest(List<TrotroStation> stations, double userLat, double userLng) {
+    if (stations.isEmpty) return '';
+    
     stations.sort((a, b) {
-      final distA =
-          calculateDistance(userLat, userLng, a.latitude, a.longitude);
-      final distB =
-          calculateDistance(userLat, userLng, b.latitude, b.longitude);
+      final distA = a.distanceTo(userLat, userLng);
+      final distB = b.distanceTo(userLat, userLng);
       return distA.compareTo(distB);
     });
 
-    return stations.isNotEmpty ? stations.first.name : '';
+    return stations.first.name;
   }
 
-  // Save a route to the user's favorites
   Future<void> _saveRouteToFavorites(
       String origin, String destination, double fare) async {
-    // Check if user is signed in
-    if (currentUserId == null) {
+    if (_auth.currentUser?.uid == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please sign in to save routes'),
@@ -1124,7 +1125,6 @@ class _TravelHomePageState extends State<TravelHomePage> {
     }
 
     try {
-      // Create a basic route object since we don't have the full route data here
       final routeMap = {
         'segments': [],
         'totalFare': fare,
@@ -1135,10 +1135,9 @@ class _TravelHomePageState extends State<TravelHomePage> {
         'destination': destination,
       };
 
-      // Check if this route is already saved for this specific user
       final existingRoutes = await _firestore
           .collection('users')
-          .doc(currentUserId)
+          .doc(_auth.currentUser!.uid)
           .collection('favorite_routes')
           .where('origin', isEqualTo: origin)
           .where('destination', isEqualTo: destination)
@@ -1154,10 +1153,9 @@ class _TravelHomePageState extends State<TravelHomePage> {
         return;
       }
 
-      // Save the new route to the specific user's collection
       await _firestore
           .collection('users')
-          .doc(currentUserId)
+          .doc(_auth.currentUser!.uid)
           .collection('favorite_routes')
           .add({
         'origin': origin,
@@ -1165,14 +1163,13 @@ class _TravelHomePageState extends State<TravelHomePage> {
         'fare': fare,
         'routeData': routeMap,
         'createdAt': FieldValue.serverTimestamp(),
-        'userId': currentUserId, // Add user ID for additional security
+        'userId': _auth.currentUser!.uid,
       });
 
-      // Also save to local database for offline access
       final routeId = DateTime.now().millisecondsSinceEpoch.toString();
       await DatabaseHelper().addFavoriteRoute(
         id: routeId,
-        userId: currentUserId!,
+        userId: _auth.currentUser!.uid,
         origin: origin,
         destination: destination,
         fare: fare,
@@ -1201,56 +1198,60 @@ class _TravelHomePageState extends State<TravelHomePage> {
 class StationCard extends StatelessWidget {
   final String imagePath;
   final String stationName;
+  final VoidCallback? onTap;
 
   const StationCard({
-    Key? key,
+    super.key,
     required this.imagePath,
     required this.stationName,
-  }) : super(key: key);
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 160,
-      height: 180,
-      clipBehavior: Clip.hardEdge,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(
-            imagePath,
-            fit: BoxFit.cover,
-          ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withOpacity(0.7),
-                ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 160,
+        height: 180,
+        clipBehavior: Clip.hardEdge,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              imagePath,
+              fit: BoxFit.cover,
+            ),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withAlpha(178),
+                  ],
+                ),
               ),
             ),
-          ),
-          Positioned(
-            bottom: 12,
-            left: 12,
-            right: 12,
-            child: Text(
-              stationName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-                fontFamily: 'Poppins',
+            Positioned(
+              bottom: 12,
+              left: 12,
+              right: 12,
+              child: Text(
+                stationName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1259,13 +1260,11 @@ class StationCard extends StatelessWidget {
 class RedCurvePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    // Base color background
     final Paint basePaint = Paint()
       ..color = const Color(0xFFB22A2D)
       ..style = PaintingStyle.fill;
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), basePaint);
 
-    // Light red curve
     final Paint lightCurvePaint = Paint()
       ..color = const Color(0xFFC32E31)
       ..style = PaintingStyle.fill;
@@ -1278,7 +1277,6 @@ class RedCurvePainter extends CustomPainter {
     lightCurvePath.close();
     canvas.drawPath(lightCurvePath, lightCurvePaint);
 
-    // Darker bottom curve
     final Paint darkCurvePaint = Paint()
       ..color = const Color(0xFF9E2528)
       ..style = PaintingStyle.fill;
@@ -1293,4 +1291,41 @@ class RedCurvePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+class StationsListScreen extends StatelessWidget {
+  final List<TrotroStation> stations;
+
+  const StationsListScreen({
+    super.key,
+    required this.stations,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('All Stations'),
+        backgroundColor: const Color(0xFFC32E31),
+      ),
+      body: ListView.builder(
+        itemCount: stations.length,
+        itemBuilder: (context, index) {
+          final station = stations[index];
+          return ListTile(
+            title: Text(station.name),
+            subtitle: Text(station.description ?? ''),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => StationDetailScreen(station: station),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:locomo_app/models/route.dart';
 import 'package:locomo_app/services/database_helper.dart';
 import 'package:locomo_app/services/connectivity_service.dart';
@@ -11,7 +12,7 @@ class TripDetailsScreen extends StatefulWidget {
   final bool isFromFavorites;
 
   const TripDetailsScreen({
-    Key? key, 
+    Key? key,
     required this.route,
     this.isFromFavorites = false,
   }) : super(key: key);
@@ -25,68 +26,105 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   bool _isFavorite = false;
   bool _isOnline = true;
+  GoogleMapController? _mapController;
+  final Set<Polyline> _polylines = {};
+  final Set<Marker> _markers = {};
 
   @override
   void initState() {
     super.initState();
     _checkConnectivity();
     _checkIfFavorite();
-    
-    // Listen for connectivity changes
+    _setupMapData();
+
     ConnectivityService().connectivityStream.listen((isOnline) {
-      setState(() {
-        _isOnline = isOnline;
-      });
+      setState(() => _isOnline = isOnline);
     });
   }
 
-  // Check if we're online
   Future<void> _checkConnectivity() async {
     final isConnected = await ConnectivityService().isConnected();
-    setState(() {
-      _isOnline = isConnected;
-    });
+    setState(() => _isOnline = isConnected);
   }
 
-  // Check if this route is already in favorites
-  Future<void> _checkIfFavorite() async {
-    if (_auth.currentUser == null) return;
-    
-    try {
-      // Check in local database first
-      final localFavorites = await DatabaseHelper().getFavoriteRoutes(_auth.currentUser!.uid);
-      final isInLocalFavorites = localFavorites.any((route) => 
-        route['origin'] == widget.route.origin && 
-        route['destination'] == widget.route.destination
-      );
-      
-      if (isInLocalFavorites) {
-        setState(() {
-          _isFavorite = true;
-        });
-        return;
-      }
-      
-      // If online, also check Firestore
-      if (_isOnline) {
-        final snapshot = await _firestore
-            .collection('users')
-            .doc(_auth.currentUser!.uid)
-            .collection('favorite_routes')
-            .where('origin', isEqualTo: widget.route.origin)
-            .where('destination', isEqualTo: widget.route.destination)
-            .get();
-            
-        setState(() {
-          _isFavorite = snapshot.docs.isNotEmpty;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error checking if route is favorite: $e');
+  Color _getSegmentColor(String type) {
+    switch (type) {
+      case 'walk':
+        return Colors.green;
+      case 'drive':
+        return Colors.blue;
+      case 'bus':
+        return Colors.orange;
+      default:
+        return Colors.red;
     }
   }
 
-  // Toggle favorite status
+  Future<void> _checkIfFavorite() async {
+    if (_auth.currentUser == null) return;
+    final localFavorites =
+        await DatabaseHelper().getFavoriteRoutes(_auth.currentUser!.uid);
+    final isInLocalFavorites = localFavorites.any((route) =>
+        route['origin'] == widget.route.origin &&
+        route['destination'] == widget.route.destination);
+    if (isInLocalFavorites) {
+      setState(() => _isFavorite = true);
+      return;
+    }
+    if (_isOnline) {
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(_auth.currentUser!.uid)
+          .collection('favorite_routes')
+          .where('origin', isEqualTo: widget.route.origin)
+          .where('destination', isEqualTo: widget.route.destination)
+          .get();
+      setState(() => _isFavorite = snapshot.docs.isNotEmpty);
+    }
+  }
+
+  Future<void> _setupMapData() async {
+  final Set<Polyline> polylines = {};
+  final Set<Marker> markers = {};
+
+  for (int i = 0; i < widget.route.segments.length; i++) {
+    final seg = widget.route.segments[i];
+
+    if (seg.polyline != null && seg.polyline!.isNotEmpty) {
+      final polyline = Polyline(
+        polylineId: PolylineId("segment_$i"),
+        color: _getSegmentColor(seg.type),
+        width: 4,
+        points: seg.polyline!,
+      );
+
+      polylines.add(polyline);
+
+      if (i == 0) {
+        markers.add(Marker(
+          markerId: const MarkerId("start"),
+          position: seg.polyline!.first,
+          infoWindow: const InfoWindow(title: "Start"),
+        ));
+      }
+
+      if (i == widget.route.segments.length - 1) {
+        markers.add(Marker(
+          markerId: const MarkerId("end"),
+          position: seg.polyline!.last,
+          infoWindow: const InfoWindow(title: "End"),
+        ));
+      }
+    }
+  }
+
+  setState(() {
+    _polylines.addAll(polylines);
+    _markers.addAll(markers);
+  });
+}
+
+  
   Future<void> _toggleFavorite() async {
     if (_auth.currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -120,11 +158,11 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   // Add route to favorites
   Future<void> _addToFavorites() async {
     if (_auth.currentUser == null) return;
-    
+
     try {
       // Generate a unique ID for the route
       final routeId = DateTime.now().millisecondsSinceEpoch.toString();
-      
+
       // Save to local database first
       await DatabaseHelper().addFavoriteRoute(
         id: routeId,
@@ -134,7 +172,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
         fare: widget.route.totalFare,
         synced: _isOnline ? 1 : 0,
       );
-      
+
       // If online, also save to Firestore
       if (_isOnline) {
         await _firestore
@@ -149,15 +187,15 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
           'createdAt': FieldValue.serverTimestamp(),
           'userId': _auth.currentUser!.uid,
         });
-        
+
         // Mark as synced in local database
         await DatabaseHelper().markFavoriteRouteAsSynced(routeId);
       }
-      
+
       setState(() {
         _isFavorite = true;
       });
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Route saved to favorites'),
@@ -173,23 +211,24 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   // Remove route from favorites
   Future<void> _removeFromFavorites() async {
     if (_auth.currentUser == null) return;
-    
+
     try {
       // Find the route ID in local database
-      final localFavorites = await DatabaseHelper().getFavoriteRoutes(_auth.currentUser!.uid);
+      final localFavorites =
+          await DatabaseHelper().getFavoriteRoutes(_auth.currentUser!.uid);
       final matchingRoute = localFavorites.firstWhere(
-        (route) => 
-          route['origin'] == widget.route.origin && 
-          route['destination'] == widget.route.destination,
+        (route) =>
+            route['origin'] == widget.route.origin &&
+            route['destination'] == widget.route.destination,
         orElse: () => {'id': ''},
       );
-      
+
       final routeId = matchingRoute['id'] as String;
-      
+
       if (routeId.isNotEmpty) {
         // Delete from local database
         await DatabaseHelper().deleteFavoriteRoute(routeId);
-        
+
         // If online, also delete from Firestore
         if (_isOnline) {
           await _firestore
@@ -200,11 +239,11 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
               .delete();
         }
       }
-      
+
       setState(() {
         _isFavorite = false;
       });
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Route removed from favorites'),
@@ -227,11 +266,13 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
             // App Bar
             Container(
               color: const Color(0xFFC32E31),
-              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top, bottom: 16.0),
+              padding: EdgeInsets.only(
+                  top: MediaQuery.of(context).padding.top, bottom: 16.0),
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.chevron_left, color: Colors.white, size: 30),
+                    icon: const Icon(Icons.chevron_left,
+                        color: Colors.white, size: 30),
                     onPressed: () => Navigator.pop(context),
                   ),
                   const Expanded(
@@ -257,7 +298,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                 ],
               ),
             ),
-            
+
             // Main Content - Scrollable
             Expanded(
               child: SingleChildScrollView(
@@ -283,7 +324,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                           children: [
                             // Fastest label
                             Text(
-                              widget.isFromFavorites ? 'Saved Route' : 'Recommended',
+                              widget.isFromFavorites
+                                  ? 'Saved Route'
+                                  : 'Recommended',
                               style: const TextStyle(
                                 color: Colors.green,
                                 fontWeight: FontWeight.w500,
@@ -291,7 +334,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            
+
                             // Time and star
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -323,7 +366,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                                 ),
                                 IconButton(
                                   icon: Icon(
-                                    _isFavorite ? Icons.star : Icons.star_border,
+                                    _isFavorite
+                                        ? Icons.star
+                                        : Icons.star_border,
                                     size: 24,
                                   ),
                                   padding: EdgeInsets.zero,
@@ -333,7 +378,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            
+
                             // Route text
                             Row(
                               children: [
@@ -345,7 +390,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                                   ),
                                 ),
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8.0),
                                   child: Text(
                                     '→',
                                     style: TextStyle(
@@ -364,7 +410,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            
+
                             // Walk info
                             if (widget.route.segments.isNotEmpty)
                               Text(
@@ -375,7 +421,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                                 ),
                               ),
                             const SizedBox(height: 12),
-                            
+
                             // Transfers and Price
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -385,15 +431,18 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text('${widget.route.segments.length - 1} ${widget.route.segments.length - 1 == 1 ? 'Transfer' : 'Transfers'}'),
+                                      Text(
+                                          '${widget.route.segments.length - 1} ${widget.route.segments.length - 1 == 1 ? 'Transfer' : 'Transfers'}'),
                                       const SizedBox(width: 4),
-                                      const Icon(Icons.keyboard_arrow_down, size: 16),
+                                      const Icon(Icons.keyboard_arrow_down,
+                                          size: 16),
                                     ],
                                   ),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFFC32E31),
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
                                     textStyle: const TextStyle(fontSize: 14),
                                   ),
                                 ),
@@ -419,7 +468,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                               ],
                             ),
                             const SizedBox(height: 16),
-                            
+
                             // Map section
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
@@ -433,24 +482,27 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                               ),
                             ),
                             const SizedBox(height: 16),
-                            
+
                             // Trip steps
-                            ...widget.route.segments.map((segment) => TripStep(
-                              time: segment.departureTime ?? '',
-                              location: segment.description,
-                              instruction: segment.type == 'walk' 
-                                  ? 'Walk for ${segment.duration} min' 
-                                  : 'Ride for ${segment.duration} min',
-                              icon: segment.type == 'walk' 
-                                  ? Icons.directions_walk 
-                                  : Icons.directions_bus,
-                              transportType: segment.type,
-                            )).toList(),
-                            
+                            ...widget.route.segments
+                                .map((segment) => TripStep(
+                                      time: segment.departureTime ?? '',
+                                      location: segment.description,
+                                      instruction: segment.type == 'walk'
+                                          ? 'Walk for ${segment.duration} min'
+                                          : 'Ride for ${segment.duration} min',
+                                      icon: segment.type == 'walk'
+                                          ? Icons.directions_walk
+                                          : Icons.directions_bus,
+                                      transportType: segment.type,
+                                    ))
+                                .toList(),
+
                             // Final destination
                             TripStep(
                               time: widget.route.arrivalTime,
-                              location: widget.route.destination ?? 'Destination',
+                              location:
+                                  widget.route.destination ?? 'Destination',
                               instruction: '',
                               icon: Icons.location_on,
                               transportType: 'walk',
@@ -491,7 +543,7 @@ class TripStep extends StatelessWidget {
     // Determine icon and color based on transport type
     IconData displayIcon = icon;
     Color iconColor = Colors.black54;
-    
+
     if (transportType == 'drive') {
       displayIcon = Icons.directions_car;
       iconColor = Colors.blue;
@@ -517,7 +569,7 @@ class TripStep extends StatelessWidget {
             ),
           ),
         ),
-        
+
         // Icon column
         Container(
           margin: const EdgeInsets.only(right: 12),
@@ -537,7 +589,7 @@ class TripStep extends StatelessWidget {
             ),
           ),
         ),
-        
+
         // Location and instruction column
         Expanded(
           child: Column(

@@ -35,15 +35,16 @@ class CompositeRoute {
 
   
 
-  Map<String, dynamic> toJson() {
-    return {
-      'segments': segments.map((s) => s.toJson()).toList(),
-      'totalFare': totalFare,
-      'totalDuration': totalDuration,
-      'departureTime': departureTime,
-      'arrivalTime': arrivalTime,
-      'origin': origin,
-      'destination': destination,
-    };
-  }
+Map<String, dynamic> toJson() {
+  return {
+    'segments': segments.map((s) => s.toJson()).toList(),
+    'totalFare': totalFare,
+    'totalDuration': totalDuration,
+    'departureTime': departureTime,
+    'arrivalTime': arrivalTime,
+    'origin': origin,
+    'destination': destination,
+  };
+}
+
 }

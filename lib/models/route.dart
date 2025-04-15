@@ -1,4 +1,9 @@
-export 'route.dart';
+// import 'package:latlong2/latlong.dart';
+
+// export 'route.dart';
+import 'dart:convert';
+
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class RouteSegment {
   final String description;
@@ -6,6 +11,7 @@ class RouteSegment {
   final int duration; // in minutes
   final String type; // 'bus', 'walk', etc.
   final String? departureTime;
+  final List<LatLng>? polyline;
 
   RouteSegment({
     required this.description,
@@ -13,17 +19,38 @@ class RouteSegment {
     required this.duration,
     required this.type,
     this.departureTime,
+    this.polyline,
   });
+  
   // Factory method to create a RouteSegment from a JSON map
   factory RouteSegment.fromJson(Map<String, dynamic> json) {
-    return RouteSegment(
-      description: json['description']?.toString() ?? '',
-      fare: (json['fare'] ?? 0).toDouble(),
-      duration: json['duration']?.toInt() ?? 0,
-      type: json['type']?.toString() ?? 'unknown',
-      departureTime: json['departureTime']?.toString(),
-    );
-  }
+  return RouteSegment(
+    description: json['description']?.toString() ?? '',
+    fare: (json['fare'] ?? 0).toDouble(),
+    duration: json['duration']?.toInt() ?? 0,
+    type: json['type']?.toString() ?? 'unknown',
+    departureTime: json['departureTime']?.toString(),
+    polyline: json['polyline'] != null
+        ? (json['polyline'] as List)
+            .map((p) => LatLng(p['lat'], p['lng']))
+            .toList()
+        : null,
+  );
+}
+
+Map<String, dynamic> toJson() {
+  return {
+    'description': description,
+    'fare': fare,
+    'duration': duration,
+    'type': type,
+    'departureTime': departureTime,
+    'polyline': polyline
+        ?.map((p) => {'lat': p.latitude, 'lng': p.longitude})
+        .toList(),
+  };
+}
+
 }
 
 class CompositeRoute {
@@ -87,8 +114,10 @@ class CompositeRoute {
       destination: json['destination'] ?? '',
     );
   }
+  
+
   // Convert the route to a map for storage
-  Map<String, dynamic> toMap() {
+Map<String, dynamic> toJson() {
     return {
       'segments': segments
           .map((segment) => {
@@ -97,6 +126,11 @@ class CompositeRoute {
                 'duration': segment.duration,
                 'type': segment.type,
                 'departureTime': segment.departureTime,
+                'polyline': segment.polyline != null
+                    ? jsonEncode(segment.polyline!
+                        .map((e) => {'lat': e.latitude, 'lng': e.longitude})
+                        .toList())
+                    : null,
               })
           .toList(),
       'totalFare': totalFare,
@@ -107,4 +141,34 @@ class CompositeRoute {
       'destination': destination,
     };
   }
+}
+
+List<LatLng> _decodePolyline(String encoded) {
+  List<LatLng> points = [];
+  int index = 0, len = encoded.length;
+  int lat = 0, lng = 0;
+
+  while (index < len) {
+    int b, shift = 0, result = 0;
+    do {
+      b = encoded.codeUnitAt(index++) - 63;
+      result |= (b & 0x1F) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+    lat += dlat;
+
+    shift = 0;
+    result = 0;
+    do {
+      b = encoded.codeUnitAt(index++) - 63;
+      result |= (b & 0x1F) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+    lng += dlng;
+
+    points.add(LatLng(lat / 1E5, lng / 1E5));
+  }
+  return points;
 }
