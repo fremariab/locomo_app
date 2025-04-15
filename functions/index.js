@@ -1,53 +1,41 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
-
-const {onRequest} = require("firebase-functions/v2/https");
-const logger = require("firebase-functions/logger");
-
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
-
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+const { onRequest } = require("firebase-functions/v2/https");
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+
 admin.initializeApp();
 const db = admin.firestore();
 
+// This function handles incoming requests to search for possible routes
 exports.searchRoutes = functions.https.onRequest(async (req, res) => {
+  // Only allow POST requests
   if (req.method !== "POST") {
     return res.status(405).send("Method Not Allowed");
   }
 
+  // Get user input from the request
   const { origin, destination, preference = "none", budget = null } = req.body;
 
   try {
+    // Get all route documents from Firestore
     const snapshot = await db.collection("routes").get();
     let matchedRoutes = [];
 
     snapshot.forEach(doc => {
       const data = doc.data();
 
+      // Convert all stops to lowercase to make comparison easier
       const stops = data.stops.map(stop => stop.toLowerCase());
       const originIndex = stops.indexOf(origin.toLowerCase());
       const destinationIndex = stops.indexOf(destination.toLowerCase());
 
-      // Origin and destination must both exist and be in the correct order
+      // Only continue if both origin and destination exist and are in order
       if (originIndex !== -1 && destinationIndex !== -1 && originIndex < destinationIndex) {
         const subStops = stops.slice(originIndex, destinationIndex + 1);
 
-        // Estimate fare (optional logic or fixed)
-        const fare = data.fare || 3.5; // fallback if fare not stored
+        // If fare is missing, use a default of 3.5
+        const fare = data.fare || 3.5;
 
-        // Check budget
+        // If no budget is provided or fare is within budget, include the route
         if (!budget || fare <= budget) {
           matchedRoutes.push({
             routeId: data.id || doc.id,
@@ -57,7 +45,7 @@ exports.searchRoutes = functions.https.onRequest(async (req, res) => {
             stops: subStops,
             fare: fare,
             transfers: 0,
-            time: (subStops.length * 2), // mock 2 mins per stop
+            time: (subStops.length * 2), // Assume each stop takes 2 minutes
             firstStation: origin,
             lastStation: destination
           });
@@ -65,7 +53,7 @@ exports.searchRoutes = functions.https.onRequest(async (req, res) => {
       }
     });
 
-    // Sort results based on user preference
+    // Sort results based on the user's selected preference
     if (preference === "shortest_time") {
       matchedRoutes.sort((a, b) => a.time - b.time);
     } else if (preference === "lowest_fare") {
@@ -74,9 +62,11 @@ exports.searchRoutes = functions.https.onRequest(async (req, res) => {
       matchedRoutes.sort((a, b) => a.transfers - b.transfers);
     }
 
+    // Return the matched routes
     return res.status(200).json({ results: matchedRoutes });
+
   } catch (err) {
-    console.error("❌ Backend error:", err);
+    console.error("Error while searching routes:", err);
     return res.status(500).json({ error: "Something went wrong" });
   }
 });

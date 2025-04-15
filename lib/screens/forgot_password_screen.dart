@@ -10,17 +10,12 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  // Colors
   static const Color primaryRed = Color(0xFFC32E31);
   static const Color white = Colors.white;
 
-  // Controllers
   final _emailController = TextEditingController();
-
-  // Services
   final AuthService _authService = AuthService();
 
-  // State
   bool _isLoading = false;
   bool _resetSent = false;
 
@@ -31,14 +26,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  // Send reset email when user enters a valid address
   Future<void> _resetPassword() async {
     final email = _emailController.text.trim();
-    
+
     if (email.isEmpty) {
       _showMessage('Please enter your email address');
       return;
@@ -77,7 +71,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Header with red background
+            // Top section with curved red header and logo
             Stack(
               children: [
                 CustomPaint(
@@ -96,11 +90,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           width: 50,
                           height: 50,
                           errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.directions_bus,
-                              size: 50,
-                              color: white,
-                            );
+                            return const Icon(Icons.directions_bus, size: 50, color: white);
                           },
                         ),
                       ),
@@ -128,7 +118,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ],
             ),
 
-            // Reset password content
+            // Show form or success message based on _resetSent
             Padding(
               padding: const EdgeInsets.all(24),
               child: _resetSent ? _buildSuccessContent() : _buildResetForm(),
@@ -139,6 +129,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
+  // Reset form that accepts email input
   Widget _buildResetForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,8 +143,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 32),
-        
-        // Email field
+
         TextField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
@@ -183,10 +173,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             fontWeight: FontWeight.w400,
           ),
         ),
-        
         const SizedBox(height: 40),
-        
-        // Reset button
+
         SizedBox(
           width: double.infinity,
           height: 56,
@@ -194,9 +182,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             onPressed: _isLoading ? null : _resetPassword,
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryRed,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(5),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
               elevation: 0,
             ),
             child: _isLoading
@@ -212,10 +198,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ),
           ),
         ),
-        
         const SizedBox(height: 24),
-        
-        // Back to login
+
         Center(
           child: TextButton(
             onPressed: () {
@@ -237,16 +221,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
+  // Message shown after reset email is sent
   Widget _buildSuccessContent() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const Icon(
-          Icons.check_circle_outline,
-          color: Color(0xFF4CAF50),
-          size: 80,
-        ),
+        const Icon(Icons.check_circle_outline, color: Color(0xFF4CAF50), size: 80),
         const SizedBox(height: 24),
         const Text(
           'Password Reset Email Sent',
@@ -308,18 +289,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 }
 
-// Reuse the same curve painter from login screen
+// This draws the red header background with curves
 class RedCurvePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    // Base color
     final Paint basePaint = Paint()
       ..color = const Color(0xFFB22A2D)
       ..style = PaintingStyle.fill;
 
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), basePaint);
 
-    // Lighter curved shape
     final Paint lightCurvePaint = Paint()
       ..color = const Color(0xFFC32E31)
       ..style = PaintingStyle.fill;
@@ -331,10 +310,8 @@ class RedCurvePainter extends CustomPainter {
     lightCurvePath.lineTo(size.width, 0);
     lightCurvePath.lineTo(0, 0);
     lightCurvePath.close();
-
     canvas.drawPath(lightCurvePath, lightCurvePaint);
 
-    // Darker curved shape
     final Paint darkCurvePaint = Paint()
       ..color = const Color(0xFF9E2528)
       ..style = PaintingStyle.fill;
@@ -345,7 +322,6 @@ class RedCurvePainter extends CustomPainter {
         size.width * 0.8, size.height * 0.7, size.width, size.height * 0.8);
     darkCurvePath.lineTo(size.width, size.height);
     darkCurvePath.close();
-
     canvas.drawPath(darkCurvePath, darkCurvePaint);
   }
 

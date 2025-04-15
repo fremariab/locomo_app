@@ -350,7 +350,7 @@ class TravelResultsPage extends StatelessWidget {
                       price: route['fare'] != null
                           ? 'GHS ${route['fare'].toStringAsFixed(2)}'
                           : 'GHS 0.00',
-                      transferColor: Colors.red,
+                      transferColor: Color(0xFFC32E31),
                     ),
                   );
                 }
@@ -373,7 +373,7 @@ class TravelResultsPage extends StatelessWidget {
                 //           ? 'GHS ${route['fare']}'
                 //           : 'GHS 0.00',
 
-                //       transferColor: Colors.red,
+                //       transferColor: Color(0xFFC32E31),
                 //     ),
                 //   );
                 // },

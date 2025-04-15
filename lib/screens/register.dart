@@ -22,10 +22,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   final AuthService _authService = AuthService();
 
+  // Show a small popup message
   void _showMessage(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  // Handles the registration logic
   Future<void> _register() async {
     final name = _fullNameController.text.trim();
     final email = _emailController.text.trim();
@@ -87,6 +89,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
+            // Red curved header with logo and title
             Stack(
               children: [
                 CustomPaint(
@@ -132,7 +135,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ],
             ),
+
             const SizedBox(height: 22),
+
+            // Form section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
@@ -151,6 +157,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     setState(() => _obscureRepeatPassword = !_obscureRepeatPassword);
                   }),
                   const SizedBox(height: 48),
+
+                  // Register button
                   SizedBox(
                     width: double.infinity,
                     height: 56,
@@ -174,7 +182,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                     ),
                   ),
+
                   const SizedBox(height: 24),
+
+                  // Link to go back to login
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -205,6 +216,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 32),
                 ],
               ),
@@ -215,6 +227,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  // Builds a regular input field
   Widget _buildTextField(TextEditingController controller, String label, {bool isEmail = false}) {
     return TextField(
       controller: controller,
@@ -224,6 +237,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  // Builds a password input field with show/hide toggle
   Widget _buildPasswordField(TextEditingController controller, String label, bool obscure, VoidCallback toggle) {
     return TextField(
       controller: controller,
@@ -238,6 +252,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  // Defines the style for input boxes
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
@@ -255,6 +270,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  // Defines the style for input text
   TextStyle _inputTextStyle() {
     return const TextStyle(
       color: Colors.black,
@@ -265,6 +281,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 }
 
+// Draws the red curved background on top
 class RedCurvePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

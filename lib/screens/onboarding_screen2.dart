@@ -9,7 +9,7 @@ class OnboardingScreen2 extends StatelessWidget {
       padding: const EdgeInsets.all(20.0),
       child: Column(
         children: [
-          // Logo at top
+          // Show app logo
           Padding(
             padding: const EdgeInsets.only(top: 5.0),
             child: Center(
@@ -23,8 +23,10 @@ class OnboardingScreen2 extends StatelessWidget {
               ),
             ),
           ),
+
           const SizedBox(height: 20),
-          // Phone screens showing map feature
+
+          // Show illustration of the app
           Image.asset(
             'assets/images/onb_image1.png',
             width: 300,
@@ -33,35 +35,37 @@ class OnboardingScreen2 extends StatelessWidget {
               return const Icon(Icons.error, size: 50);
             },
           ),
+
           const SizedBox(height: 20),
-          // Title and description
+
+          // Main heading
           const Text(
             'Discover\nStations Nearby',
             textAlign: TextAlign.center,
-           style: TextStyle(
+            style: TextStyle(
               fontSize: 27,
               fontWeight: FontWeight.bold,
               fontFamily: 'Poppins',
             ),
           ),
+
           const SizedBox(height: 10),
+
+          // Description under the heading
           Padding(
-            padding: const EdgeInsets.all(
-                16.0), // Adjust the padding value as needed
-            child:  const Text(
-            'See which stations are near you and explore the country with ease!',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-              height: 1.4,
+            padding: const EdgeInsets.all(16.0),
+            child: const Text(
+              'See which stations are near you and explore the country with ease!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+                height: 1.4,
+              ),
             ),
           ),
-          )
-         
         ],
       ),
     );
   }
-
 }

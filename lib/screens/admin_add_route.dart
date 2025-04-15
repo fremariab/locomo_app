@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+// This screen lets an admin add a new trotro route
 class AdminAddRoutePage extends StatefulWidget {
   const AdminAddRoutePage({Key? key}) : super(key: key);
 
@@ -10,6 +11,7 @@ class AdminAddRoutePage extends StatefulWidget {
 class _AdminAddRoutePageState extends State<AdminAddRoutePage> {
   final _formKey = GlobalKey<FormState>();
 
+  // Controllers for all input fields
   final TextEditingController originController = TextEditingController();
   final TextEditingController destinationController = TextEditingController();
   final TextEditingController timeController = TextEditingController();
@@ -17,6 +19,7 @@ class _AdminAddRoutePageState extends State<AdminAddRoutePage> {
   final TextEditingController transferController = TextEditingController();
   final TextEditingController detailsController = TextEditingController();
 
+  // When user hits "submit", collect all the data
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
       final newRoute = {
@@ -26,18 +29,18 @@ class _AdminAddRoutePageState extends State<AdminAddRoutePage> {
         "fare": double.tryParse(fareController.text.trim()) ?? 0.0,
         "transfers": int.tryParse(transferController.text.trim()) ?? 0,
         "details": detailsController.text.trim(),
-        "departure_time": "6:15 AM", // You can allow input later
+        "departure_time": "6:15 AM",
         "arrival_time": "7:00 AM",
       };
 
-      // TODO: Replace this with Firebase upload logic
-      print("Route Submitted: $newRoute");
+      // Placeholder debugPrint — later this should upload to Firebase
+      debugPrint("Route Submitted: $newRoute");
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Route successfully added!")),
       );
 
-      // Clear fields
+      // Reset all fields
       originController.clear();
       destinationController.clear();
       timeController.clear();
@@ -88,6 +91,7 @@ class _AdminAddRoutePageState extends State<AdminAddRoutePage> {
     );
   }
 
+  // This builds each input field with consistent styling
   Widget _buildTextField(TextEditingController controller, String label,
       {bool isNumber = false, int maxLines = 1}) {
     return Padding(

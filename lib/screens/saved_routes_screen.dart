@@ -17,10 +17,10 @@ class SavedRoutesScreen extends StatefulWidget {
 
 class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
   // Colors
-  static const Color primaryRed = Color(0xFFC33939);
+  static const Color primaryRed = Color(0xFFC32E31);
   static const Color white = Colors.white;
-  static const Color lightGrey = Color(0xFFEEEEEE);
-  static const Color darkGrey = Color(0xFF616161);
+  static const Color lightGrey = Color(0xFFD9D9D9);
+  static const Color darkGrey = Color(0xFF656565);
   static const Color textSecondary = Colors.black54;
 
   // Services
@@ -79,7 +79,7 @@ class _SavedRoutesScreenState extends State<SavedRoutesScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Color(0xFFC32E31)),
             child: const Text('DELETE'),
           ),
         ],

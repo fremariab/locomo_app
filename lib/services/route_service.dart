@@ -1,9 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'map_service.dart'; // Make sure this import is available for MapService.getWalkingDirections
+import 'map_service.dart';
 
 class RouteService {
-  // Existing method remains unchanged.
+  // Calls backend to find matching trotro routes between origin and destination
   static Future<List<dynamic>> searchRoutes({
     required String origin,
     required String destination,
@@ -19,16 +20,11 @@ class RouteService {
       "budget": budget,
     };
 
-    print("📤 Sending Route Request: ${jsonEncode(payload)}");
-
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(payload),
     );
-
-    print("📥 Response Status: ${response.statusCode}");
-    print("📥 Response Body: ${response.body}");
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body)["results"];
@@ -37,61 +33,62 @@ class RouteService {
     }
   }
 
+  // Combines trotro route with walking segments at the start and end
+  static Future<List<dynamic>> searchCompositeRoutes({
+    required String origin,
+    required String destination,
+    String preference = "none",
+    double? budget,
+  }) async {
+    try {
+      final trotroRoutes = await searchRoutes(
+        origin: origin,
+        destination: destination,
+        preference: preference,
+        budget: budget,
+      );
 
-static Future<List<dynamic>> searchCompositeRoutes({
-  required String origin,
-  required String destination,
-  String preference = "none",
-  double? budget,
-}) async {
-  try {
-    final trotroRoutes = await searchRoutes(
-      origin: origin,
-      destination: destination,
-      preference: preference,
-      budget: budget,
-    );
+      List<dynamic> compositeRoutes = [];
 
-    List<dynamic> compositeRoutes = [];
+      for (var route in trotroRoutes) {
+        final stops = List<String>.from(route['stops'] ?? []);
+        if (stops.isEmpty) continue;
 
-    for (var route in trotroRoutes) {
-      // Use first and last stops if firstStation/lastStation not available
-      final stops = List<String>.from(route['stops'] ?? []);
-      if (stops.isEmpty) continue;
+        final firstStation = stops.first;
+        final lastStation = stops.last;
 
-      final firstStation = stops.first;
-      final lastStation = stops.last;
+        // Use fallback/default values if some fields are missing
+        route['departure_time'] ??= 'Now';
+        route['arrival_time'] ??= 'Later';
+        route['time'] ??= stops.length * 2; // Assume 2 minutes per stop
+        route['details'] ??= route['routeName'] ?? 'Direct route';
+        route['transfers'] ??= 0;
 
-      // Add default timing estimates if not provided
-      route['departure_time'] ??= 'Now';
-      route['arrival_time'] ??= 'Later';
-      route['time'] ??= (stops.length * 2); // 2 mins per stop estimate
-      route['details'] ??= route['routeName'] ?? 'Direct route';
-      route['transfers'] ??= 0;
+        // Add walking segments to and from the route
+        try {
+          final originWalking = await MapService.getWalkingDirections(
+            origin: origin,
+            destination: firstStation,
+          );
 
-      // Get walking directions with null checks
-      try {
-        final originWalking = await MapService.getWalkingDirections(
-          origin: origin,
-          destination: firstStation,
-        );
-        final destinationWalking = await MapService.getWalkingDirections(
-          origin: lastStation,
-          destination: destination,
-        );
+          final destinationWalking = await MapService.getWalkingDirections(
+            origin: lastStation,
+            destination: destination,
+          );
 
-        route['originWalking'] = originWalking;
-        route['destinationWalking'] = destinationWalking;
-      } catch (e) {
-        print('Error getting walking directions: $e');
+          route['originWalking'] = originWalking;
+          route['destinationWalking'] = destinationWalking;
+        } catch (e) {
+          debugPrint('Walking directions failed: $e');
+        }
+
+        compositeRoutes.add(route);
       }
 
-      compositeRoutes.add(route);
+      return compositeRoutes;
+    } catch (e) {
+      debugPrint('Composite route search failed: $e');
+      rethrow;
     }
-
-    return compositeRoutes;
-  } catch (e) {
-    print('Error in composite route search: $e');
-    rethrow;
   }
-}}
+}

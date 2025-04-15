@@ -10,7 +10,7 @@ class OnboardingScreen1 extends StatelessWidget {
       child: SingleChildScrollView(
         child: Column(
           children: [
-            // Logo at top
+            // App logo
             Padding(
               padding: const EdgeInsets.only(top: 5.0),
               child: Center(
@@ -24,8 +24,10 @@ class OnboardingScreen1 extends StatelessWidget {
                 ),
               ),
             ),
+
             const SizedBox(height: 10),
-            // Map with stations
+
+            // Main onboarding image
             Image.asset(
               'assets/images/onb_image.png',
               width: 260,
@@ -35,8 +37,10 @@ class OnboardingScreen1 extends StatelessWidget {
                 return const Icon(Icons.error, size: 50);
               },
             ),
+
             const SizedBox(height: 10),
-            // Title and description
+
+            // Title text
             const Text(
               'Your Journey,\nPerfectly Planned',
               textAlign: TextAlign.center,
@@ -46,7 +50,10 @@ class OnboardingScreen1 extends StatelessWidget {
                 fontFamily: 'Poppins',
               ),
             ),
+
             const SizedBox(height: 10),
+
+            // Short description text
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0),
               child: Text(
@@ -59,6 +66,7 @@ class OnboardingScreen1 extends StatelessWidget {
                 ),
               ),
             ),
+
             const SizedBox(height: 10),
           ],
         ),

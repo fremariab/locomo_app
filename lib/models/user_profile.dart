@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// This class is just for handling user info (like name, email, etc.)
 class UserProfile {
   final String id;
   final String email;
@@ -7,11 +8,10 @@ class UserProfile {
   final DateTime createdAt;
   final String? profileImageUrl;
   final String country;
-/*   final String language;
-  final String appearance; */
   final DateTime? defaultSearchDate;
   final String authProvider;
 
+  // Constructor for creating a user profile
   UserProfile({
     required this.id,
     required this.email,
@@ -19,15 +19,14 @@ class UserProfile {
     required this.createdAt,
     this.profileImageUrl,
     required this.country,
-/*     required this.language,
-    required this.appearance, */
     this.defaultSearchDate,
     this.authProvider = 'email',
   });
 
-  // Factory constructor to create UserProfile from Firestore document
+  // This method creates a UserProfile object using data from Firestore
   factory UserProfile.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
     return UserProfile(
       id: doc.id,
       email: data['email'] ?? '',
@@ -35,22 +34,18 @@ class UserProfile {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       profileImageUrl: data['profileImageUrl'],
       country: data['country'] ?? 'Ghana',
-/*       language: data['language'] ?? 'English',
-      appearance: data['appearance'] ?? 'Light', */
       defaultSearchDate: (data['defaultSearchDate'] as Timestamp?)?.toDate(),
       authProvider: data['authProvider'] ?? 'email',
     );
   }
 
-  // Convert to Map for updating in Firestore
+  // This method turns the UserProfile object into a Map so we can save it in Firestore
   Map<String, dynamic> toMap() {
     return {
       'email': email,
       'fullName': fullName,
       'profileImageUrl': profileImageUrl,
       'country': country,
-/*       'language': language,
-      'appearance': appearance, */
       'defaultSearchDate': defaultSearchDate != null ? Timestamp.fromDate(defaultSearchDate!) : null,
       'authProvider': authProvider,
     };

@@ -17,11 +17,11 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
   int _currentIndex = 1;
 
   // Colors
-  static const Color primaryRed = Color(0xFFC33939);
+  static const Color primaryRed = Color(0xFFC32E31);
   static const Color white = Colors.white;
-  static const Color darkGrey = Color(0xFF616161);
-  static const Color lightGrey = Color(0xFFEEEEEE);
-  static const Color iconGrey = Color(0xFF757575);
+  static const Color darkGrey = Color(0xFF656565);
+  static const Color lightGrey = Color(0xFFD9D9D9);
+  static const Color iconGrey = Color(0xFF656565);
   static const Color textPrimary = Colors.black87;
   static const Color textSecondary = Colors.black54;
 
@@ -134,8 +134,8 @@ class StationListItem extends StatelessWidget {
     required this.onTap,
   }) : super(key: key);
 
-  static const Color lightGrey = Color(0xFFEEEEEE);
-  static const Color iconGrey = Color(0xFF757575);
+  static const Color lightGrey = Color(0xFFD9D9D9);
+  static const Color iconGrey = Color(0xFF656565);
   static const Color textPrimary = Colors.black87;
   static const Color textSecondary = Colors.black54;
 
@@ -165,7 +165,7 @@ class StationListItem extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: iconColor ?? Colors.red,
+              color: iconColor ?? Color(0xFFC32E31),
               size: 24.0,
             ),
             const SizedBox(width: 16.0),

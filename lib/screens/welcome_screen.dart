@@ -3,7 +3,7 @@ import 'dart:async';
 
 class WelcomeScreen extends StatefulWidget {
   final VoidCallback onComplete;
-  
+
   const WelcomeScreen({super.key, required this.onComplete});
 
   @override
@@ -16,6 +16,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Start a timer that moves to the next screen after 2 seconds
     _timer = Timer(const Duration(seconds: 2), () {
       if (mounted) {
         widget.onComplete();
@@ -25,7 +27,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   @override
   void dispose() {
-    _timer.cancel(); // Cancel the timer when widget is disposed
+    // Cancel timer when leaving screen to avoid memory leaks
+    _timer.cancel();
     super.dispose();
   }
 
@@ -35,6 +38,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          // Show app logo
           Image.asset(
             'assets/images/locomo_logo.png',
             width: 200,
@@ -43,7 +47,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               return const Icon(Icons.error, size: 50);
             },
           ),
+
           const SizedBox(height: 40),
+
+          // Show loading bar animation
           SizedBox(
             width: 200,
             child: TweenAnimationBuilder<double>(

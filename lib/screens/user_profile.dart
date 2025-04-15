@@ -16,20 +16,19 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class UserProfileScreenState extends State<UserProfileScreen> {
-  // Inline colors
-  static const Color primaryRed = Color(0xFFC33939);
+  // Define app colors
+  static const Color primaryRed = Color(0xFFC32E31);
   static const Color white = Colors.white;
-  static const Color lightGrey = Color(0xFFEEEEEE);
-  static const Color darkGrey = Color(0xFF616161);
-  static const Color iconGrey = Color(0xFF757575);
+  static const Color lightGrey = Color(0xFFD9D9D9);
+  static const Color darkGrey = Color(0xFF656565);
   static const Color textPrimary = Colors.black87;
   static const Color textSecondary = Colors.black54;
 
-  // Services
+  // Service instances
   final AuthService _authService = AuthService();
   final UserProfileService _userProfileService = UserProfileService();
-  
-  // State variables
+
+  // State values
   UserProfile? _userProfile;
   bool _isLoading = true;
   File? _selectedImage;
@@ -41,17 +40,14 @@ class UserProfileScreenState extends State<UserProfileScreen> {
     _loadUserProfile();
   }
 
+  // Show snackbar
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  // Load profile from Firebase
   Future<void> _loadUserProfile() async {
-    setState(() {
-      _isLoading = true;
-    });
-
+    setState(() => _isLoading = true);
     try {
       final userId = _authService.getCurrentUser()?.uid;
       if (userId != null) {
@@ -61,14 +57,13 @@ class UserProfileScreenState extends State<UserProfileScreen> {
         });
       }
     } catch (e) {
-      _showMessage('Error loading profile: ${e.toString()}');
+      _showMessage('Error loading profile: $e');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
+  // Pick and upload profile image
   Future<void> _pickAndUploadImage() async {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
@@ -76,7 +71,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
         setState(() {
           _selectedImage = File(image.path);
         });
-        
+
         final userId = _authService.getCurrentUser()?.uid;
         if (userId != null) {
           _showMessage('Uploading image...');
@@ -90,15 +85,13 @@ class UserProfileScreenState extends State<UserProfileScreen> {
         }
       }
     } catch (e) {
-      _showMessage('Error selecting image: ${e.toString()}');
+      _showMessage('Error selecting image: $e');
     }
   }
 
+  // Update selected country
   Future<void> _updateCountry() async {
-    final countries = [
-      'Ghana'
-    ];
-
+    final countries = ['Ghana'];
     final selectedCountry = await showDialog<String>(
       context: context,
       builder: (context) => SimpleDialog(
@@ -126,66 +119,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-/*   Future<void> _updateLanguage() async {
-    final languages = ['English', 'French', 'Swahili', 'Arabic', 'Portuguese', 'Amharic'];
-
-    final selectedLanguage = await showDialog<String>(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('Select Language'),
-        children: languages.map((language) {
-          return SimpleDialogOption(
-            onPressed: () => Navigator.pop(context, language),
-            child: Text(language),
-          );
-        }).toList(),
-      ),
-    );
-
-    if (selectedLanguage != null) {
-      final userId = _authService.getCurrentUser()?.uid;
-      if (userId != null) {
-        final success = await _userProfileService.updateLanguage(userId, selectedLanguage);
-        if (success) {
-          _showMessage('Language updated');
-          _loadUserProfile();
-        } else {
-          _showMessage('Failed to update language');
-        }
-      }
-    }
-  } */
-
-/*   Future<void> _updateAppearance() async {
-    final appearances = ['Light', 'Dark', 'System'];
-
-    final selectedAppearance = await showDialog<String>(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('Select Appearance'),
-        children: appearances.map((appearance) {
-          return SimpleDialogOption(
-            onPressed: () => Navigator.pop(context, appearance),
-            child: Text(appearance),
-          );
-        }).toList(),
-      ),
-    );
-
-    if (selectedAppearance != null) {
-      final userId = _authService.getCurrentUser()?.uid;
-      if (userId != null) {
-        final success = await _userProfileService.updateAppearance(userId, selectedAppearance);
-        if (success) {
-          _showMessage('Appearance updated');
-          _loadUserProfile();
-        } else {
-          _showMessage('Failed to update appearance');
-        }
-      }
-    }
-  }
- */
+  // Update the default date used in searches
   Future<void> _updateDefaultSearchDate() async {
     final initialDate = _userProfile?.defaultSearchDate ?? DateTime.now();
     final selectedDate = await showDatePicker(
@@ -209,18 +143,19 @@ class UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
+  // Handle logout
   Future<void> _signOut() async {
     try {
       await _authService.signOut();
-      // Navigate to login screen
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
     } catch (e) {
-      _showMessage('Error signing out: ${e.toString()}');
+      _showMessage('Error signing out: $e');
     }
   }
 
+  // Format date for display
   String _formatRegistrationDate(DateTime date) {
     return DateFormat('dd MMMM yyyy').format(date);
   }
@@ -233,12 +168,12 @@ class UserProfileScreenState extends State<UserProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // App Bar
+            // App bar header
             Container(
               color: primaryRed,
               padding: EdgeInsets.only(
                 top: MediaQuery.of(context).padding.top,
-                bottom: 16.0,
+                bottom: 16,
               ),
               child: Row(
                 children: [
@@ -263,179 +198,130 @@ class UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ),
 
-            // Profile Content
+            // Profile body content
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : Container(
-                      color: white,
-                      child: ListView(
-                        padding: EdgeInsets.zero,
-                        children: [
-                          // Profile Header
-                          Container(
-                            alignment: Alignment.center,
-                            padding: const EdgeInsets.all(24.0),
-                            child: Column(
-                              children: [
-                                GestureDetector(
-                                  onTap: _pickAndUploadImage,
-                                  child: Stack(
-                                    children: [
-                                      Container(
-                                        width: 80,
-                                        height: 80,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(color: lightGrey, width: 2),
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(40),
-                                          child: _userProfile?.profileImageUrl != null
-                                              ? Image.network(
-                                                  _userProfile!.profileImageUrl!,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (context, error, stackTrace) {
-                                                    return const CircleAvatar(
-                                                      radius: 40,
-                                                      backgroundColor: lightGrey,
-                                                      child: Icon(Icons.person,
-                                                          size: 40, color: darkGrey),
-                                                    );
-                                                  },
-                                                )
-                                              : Image.asset(
-                                                  'assets/images/profile_placeholder.jpg',
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (context, error, stackTrace) {
-                                                    return const CircleAvatar(
-                                                      radius: 40,
-                                                      backgroundColor: lightGrey,
-                                                      child: Icon(Icons.person,
-                                                          size: 40, color: darkGrey),
-                                                    );
-                                                  },
-                                                ),
-                                        ),
-                                      ),
-                                      Positioned(
-                                        right: 0,
-                                        bottom: 0,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(4),
-                                          decoration: const BoxDecoration(
-                                            color: primaryRed,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.camera_alt,
-                                            color: white,
-                                            size: 16,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _userProfile?.fullName ?? 'User',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Registered on ${_userProfile != null ? _formatRegistrationDate(_userProfile!.createdAt) : 'N/A'}',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Settings Items
-                          const Divider(color: lightGrey, height: 1),
-                          Column(
+                  : ListView(
+                      padding: EdgeInsets.zero,
+                      children: [
+                        // Profile top section
+                        Container(
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
                             children: [
-                              _buildSettingsItem(
-                                icon: Icons.account_circle_outlined,
-                                title: 'Account Details',
-                                onTap: () {
-                                  // Navigate to account details screen
-                                  Navigator.pushNamed(context, '/account-details');
-                                },
-                              ),
-                              _buildSettingsItem(
-                                icon: Icons.alt_route_outlined,
-                                title: 'Saved Routes',
-                                onTap: () {
-                                  // Navigate to saved routes screen
-                                  Navigator.pushNamed(context, '/saved-routes');
-                                },
-                              ),
-/*                               _buildSettingsItem(
-                                icon: Icons.language,
-                                title: 'Language',
-                                value: _userProfile?.language ?? 'English',
-                                showChevron: true,
-                                onTap: _updateLanguage,
-                              ), */
-                              _buildSettingsItem(
-                                icon: Icons.public,
-                                title: 'Country of Residence',
-                                value: _userProfile?.country ?? 'Ghana',
-                                showChevron: true,
-                                onTap: _updateCountry,
-                              ),
-                              _buildSettingsItem(
-                                icon: Icons.calendar_today,
-                                title: 'Default search date',
-                                value: _userProfile?.defaultSearchDate != null
-                                    ? DateFormat('dd MMM yyyy').format(_userProfile!.defaultSearchDate!)
-                                    : null,
-                                showChevron: true,
-                                onTap: _updateDefaultSearchDate,
-                              ),
-/*                               _buildSettingsItem(
-                                icon: Icons.brightness_6_outlined,
-                                title: 'Appearance',
-                                value: _userProfile?.appearance ?? 'Light',
-                                showChevron: true,
-                                onTap: _updateAppearance,
-                              ), */
-
-                              // Sign Out
-                              InkWell(
-                                onTap: _signOut,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 24),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.logout, color: darkGrey),
-                                      const SizedBox(width: 16),
-                                      const Text(
-                                        'Sign out',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                              GestureDetector(
+                                onTap: _pickAndUploadImage,
+                                child: Stack(
+                                  children: [
+                                    Container(
+                                      width: 80,
+                                      height: 80,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: lightGrey, width: 2),
                                       ),
-                                      const Spacer(),
-                                      Icon(Icons.chevron_right,
-                                          color: darkGrey.withOpacity(0.6), size: 20),
-                                    ],
-                                  ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(40),
+                                        child: _userProfile?.profileImageUrl != null
+                                            ? Image.network(
+                                                _userProfile!.profileImageUrl!,
+                                                fit: BoxFit.cover,
+                                              )
+                                            : Image.asset(
+                                                'assets/images/profile_placeholder.jpg',
+                                                fit: BoxFit.cover,
+                                              ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      right: 0,
+                                      bottom: 0,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: primaryRed,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(Icons.camera_alt, color: white, size: 16),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                _userProfile?.fullName ?? 'User',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Registered on ${_userProfile != null ? _formatRegistrationDate(_userProfile!.createdAt) : 'N/A'}',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: textSecondary,
                                 ),
                               ),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+
+                        // Settings options
+                        const Divider(color: lightGrey),
+                        Column(
+                          children: [
+                            _buildSettingsItem(
+                              icon: Icons.account_circle_outlined,
+                              title: 'Account Details',
+                              onTap: () => Navigator.pushNamed(context, '/account-details'),
+                            ),
+                            _buildSettingsItem(
+                              icon: Icons.alt_route_outlined,
+                              title: 'Saved Routes',
+                              onTap: () => Navigator.pushNamed(context, '/saved-routes'),
+                            ),
+                            _buildSettingsItem(
+                              icon: Icons.public,
+                              title: 'Country of Residence',
+                              value: _userProfile?.country ?? 'Ghana',
+                              showChevron: true,
+                              onTap: _updateCountry,
+                            ),
+                            _buildSettingsItem(
+                              icon: Icons.calendar_today,
+                              title: 'Default search date',
+                              value: _userProfile?.defaultSearchDate != null
+                                  ? DateFormat('dd MMM yyyy').format(_userProfile!.defaultSearchDate!)
+                                  : null,
+                              showChevron: true,
+                              onTap: _updateDefaultSearchDate,
+                            ),
+                            InkWell(
+                              onTap: _signOut,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.logout, color: darkGrey),
+                                    const SizedBox(width: 16),
+                                    const Text(
+                                      'Sign out',
+                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                                    ),
+                                    const Spacer(),
+                                    Icon(Icons.chevron_right,
+                                        color: darkGrey.withOpacity(0.6), size: 20),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
             ),
           ],
@@ -444,6 +330,7 @@ class UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
+  // Widget for each settings item row
   Widget _buildSettingsItem({
     required IconData icon,
     required String title,
@@ -456,25 +343,16 @@ class UserProfileScreenState extends State<UserProfileScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: lightGrey, width: 1),
-          ),
+          border: Border(bottom: BorderSide(color: lightGrey, width: 1)),
         ),
         child: Row(
           children: [
             Icon(icon, color: darkGrey),
             const SizedBox(width: 16),
-            Text(
-              title,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            ),
+            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
             const Spacer(),
             if (value != null)
-              Text(
-                value,
-                style: const TextStyle(fontSize: 14, color: textSecondary),
-              ),
+              Text(value, style: const TextStyle(fontSize: 14, color: textSecondary)),
             if (showChevron)
               const Padding(
                 padding: EdgeInsets.only(left: 8.0),

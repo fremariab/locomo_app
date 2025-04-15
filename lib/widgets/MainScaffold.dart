@@ -5,10 +5,11 @@ import 'package:locomo_app/screens/saved_locations.dart';
 import 'package:locomo_app/screens/faqs.dart';
 import 'package:locomo_app/screens/user_profile.dart';
 
+// This widget wraps every screen in the app with a common bottom navigation layout
 class MainScaffold extends StatelessWidget {
-  final Widget child;
-  final int currentIndex;
-  final Widget? floatingActionButton;
+  final Widget child; // the actual screen to show
+  final int currentIndex; // the tab currently selected
+  final Widget? floatingActionButton; // optional FAB if needed
 
   const MainScaffold({
     Key? key,
@@ -17,8 +18,9 @@ class MainScaffold extends StatelessWidget {
     this.floatingActionButton,
   }) : super(key: key);
 
+  // When a tab is tapped, navigate to the corresponding screen
   void _onTabTapped(BuildContext context, int index) {
-    if (index == currentIndex) return;
+    if (index == currentIndex) return; // Don't do anything if user taps current tab
 
     Widget page;
     switch (index) {
@@ -41,6 +43,7 @@ class MainScaffold extends StatelessWidget {
         page = const TravelHomePage();
     }
 
+    // Replace current screen with the new screen
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => page),
@@ -55,8 +58,8 @@ class MainScaffold extends StatelessWidget {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
         onTap: (index) => _onTabTapped(context, index),
-        selectedItemColor: const Color(0xFFC32E31),
-        unselectedItemColor: const Color(0xFFD9D9D9),
+        selectedItemColor: const Color(0xFFC32E31), // red
+        unselectedItemColor: const Color(0xFFD9D9D9), // grey
         selectedLabelStyle: const TextStyle(
           fontFamily: 'Poppins',
           fontWeight: FontWeight.w500,
@@ -67,14 +70,13 @@ class MainScaffold extends StatelessWidget {
           fontWeight: FontWeight.w500,
           fontSize: 12,
         ),
-        type: BottomNavigationBarType.fixed,
+        type: BottomNavigationBarType.fixed, // keeps labels even if less than 4 tabs
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
           BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
           BottomNavigationBarItem(icon: Icon(Icons.star), label: 'Favourites'),
           BottomNavigationBarItem(icon: Icon(Icons.help), label: 'Help'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.settings), label: 'Settings'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
         ],
       ),
     );

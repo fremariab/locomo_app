@@ -11,22 +11,22 @@ class AccountDetailsScreen extends StatefulWidget {
 }
 
 class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
-  // Colors
-  static const Color primaryRed = Color(0xFFC33939);
+  // Colors used in the UI
+  static const Color primaryRed = Color(0xFFC32E31);
   static const Color white = Colors.white;
-  static const Color lightGrey = Color(0xFFEEEEEE);
-  static const Color darkGrey = Color(0xFF616161);
+  static const Color lightGrey = Color(0xFFD9D9D9);
+  static const Color darkGrey = Color(0xFF656565);
   static const Color textSecondary = Colors.black54;
 
-  // Services
+  // Auth and user profile services
   final AuthService _authService = AuthService();
   final UserProfileService _userProfileService = UserProfileService();
 
-  // Controllers
+  // For controlling text input fields
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
 
-  // State
+  // State variables
   bool _isLoading = true;
   bool _isSaving = false;
   UserProfile? _userProfile;
@@ -45,12 +45,14 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
     super.dispose();
   }
 
+  // Helper to show small messages on the screen
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
   }
 
+  // Load user profile from Firebase
   Future<void> _loadUserProfile() async {
     setState(() {
       _isLoading = true;
@@ -62,13 +64,12 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
         final profile = await _userProfileService.getUserProfile(user.uid);
         setState(() {
           _userProfile = profile;
-          
-          // Set controllers with current values
+
           if (profile != null) {
             _fullNameController.text = profile.fullName;
             _emailController.text = profile.email;
-            
-            // Email can only be changed for email/password accounts (not Google)
+
+            // Only allow email change if not signed in with Google
             _isEmailEnabled = profile.authProvider != 'google';
           }
         });
@@ -82,8 +83,8 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
     }
   }
 
+  // Save any changes the user made
   Future<void> _saveChanges() async {
-    // Basic validation
     if (_fullNameController.text.trim().isEmpty) {
       _showMessage('Name cannot be empty');
       return;
@@ -96,32 +97,32 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
     try {
       final userId = _authService.getCurrentUser()?.uid;
       if (userId != null) {
-        // Update name in Firestore
+        // Save new name
         bool success = await _userProfileService.updateUserProfile(
-          userId, 
-          {'fullName': _fullNameController.text.trim()}
+          userId,
+          {'fullName': _fullNameController.text.trim()},
         );
 
-        // Update email if changed and enabled
-        if (_isEmailEnabled && 
+        // If email changed and editable, try to update
+        if (_isEmailEnabled &&
             _emailController.text.trim() != _userProfile?.email &&
             _emailController.text.contains('@')) {
           try {
-            await _authService.getCurrentUser()?.updateEmail(_emailController.text.trim());
+            await _authService.getCurrentUser()
+                ?.updateEmail(_emailController.text.trim());
+
             success = await _userProfileService.updateUserProfile(
-              userId, 
-              {'email': _emailController.text.trim()}
+              userId,
+              {'email': _emailController.text.trim()},
             );
           } catch (e) {
             _showMessage('Failed to update email: ${e.toString()}');
-            // Continue with other updates even if email update fails
           }
         }
 
         if (success) {
           _showMessage('Account details updated successfully');
-          // Reload profile
-          await _loadUserProfile();
+          await _loadUserProfile(); // Reload data to reflect changes
         } else {
           _showMessage('Failed to update account details');
         }
@@ -135,6 +136,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
     }
   }
 
+  // Ask Firebase to send a password reset email
   Future<void> _resetPassword() async {
     try {
       final email = _userProfile?.email;
@@ -151,15 +153,13 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
     }
   }
 
+  // Show confirmation and delete user account if confirmed
   Future<void> _deleteAccount() async {
-    // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Account?'),
-        content: const Text(
-          'Are you sure you want to delete your account? This action cannot be undone.',
-        ),
+        content: const Text('Are you sure you want to delete your account? This can’t be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -167,7 +167,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Color(0xFFC32E31)),
             child: const Text('DELETE'),
           ),
         ],
@@ -179,7 +179,6 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
         final success = await _authService.deleteAccount();
         if (success) {
           _showMessage('Account deleted successfully');
-          // Navigate to login screen
           Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
         } else {
           _showMessage('Failed to delete account');
@@ -210,14 +209,11 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                 children: [
                   const Text(
                     'Personal Information',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 24),
-                  
-                  // Full Name
+
+                  // Full name field
                   TextField(
                     controller: _fullNameController,
                     decoration: const InputDecoration(
@@ -227,8 +223,8 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
-                  // Email
+
+                  // Email field
                   TextField(
                     controller: _emailController,
                     enabled: _isEmailEnabled,
@@ -238,7 +234,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                       prefixIcon: const Icon(Icons.email),
                       suffixIcon: !_isEmailEnabled
                           ? const Tooltip(
-                              message: 'Email cannot be changed for accounts linked with Google',
+                              message: 'Can’t edit email for Google accounts',
                               child: Icon(Icons.info_outline, color: textSecondary),
                             )
                           : null,
@@ -246,7 +242,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                     keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 32),
-                  
+
                   // Save button
                   SizedBox(
                     width: double.infinity,
@@ -263,18 +259,14 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                     ),
                   ),
                   const SizedBox(height: 48),
-                  
-                  // Security section
+
                   const Text(
                     'Security',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-                  
-                  // Reset password button
+
+                  // Reset password button (only for email/password users)
                   _userProfile?.authProvider != 'google'
                       ? OutlinedButton.icon(
                           onPressed: _resetPassword,
@@ -285,29 +277,28 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                           ),
                         )
                       : const SizedBox.shrink(),
-                  
+
                   const SizedBox(height: 48),
-                  
-                  // Danger zone
+
                   const Text(
                     'Danger Zone',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.red,
+                      color: Color(0xFFC32E31),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Delete account button
                   OutlinedButton.icon(
                     onPressed: _deleteAccount,
-                    icon: const Icon(Icons.delete_forever, color: Colors.red),
+                    icon: const Icon(Icons.delete_forever, color: Color(0xFFC32E31)),
                     label: const Text('Delete Account'),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 50),
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
+                      foregroundColor: Color(0xFFC32E31),
+                      side: const BorderSide(color: Color(0xFFC32E31)),
                     ),
                   ),
                 ],

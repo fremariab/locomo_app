@@ -214,7 +214,6 @@ class _TravelHomePageState extends State<TravelHomePage> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-  
                         onPressed: () async {
                           final origin = originController.text.trim();
                           final destination = destinationController.text.trim();
@@ -229,24 +228,15 @@ class _TravelHomePageState extends State<TravelHomePage> {
                           }
 
                           try {
-                            // Show loading indicator
-                            showDialog(
-                              context: context,
-                              barrierDismissible: false,
-                              builder: (context) => const Center(
-                                  child: CircularProgressIndicator()),
-                            );
-
+                            // Use the composite route search that includes walking segments.
                             final compositeRoutes =
                                 await RouteService.searchCompositeRoutes(
                               origin: origin,
                               destination: destination,
-                              preference: 'lowest_fare',
+                              preference:
+                                  'lowest_fare', // or get it from your dropdown
                               budget: double.tryParse(_controller.text.trim()),
                             );
-
-                            // Hide loading indicator
-                            Navigator.of(context).pop();
 
                             if (compositeRoutes.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -265,13 +255,12 @@ class _TravelHomePageState extends State<TravelHomePage> {
                               ),
                             );
                           } catch (e) {
-                            // Hide loading indicator if still showing
-                            Navigator.of(context).pop();
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("Error: ${e.toString()}")),
+                              SnackBar(content: Text("Error: $e")),
                             );
                           }
                         },
+
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFC32E31),
                           shape: RoundedRectangleBorder(

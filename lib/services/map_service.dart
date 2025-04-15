@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../utils/constants.dart';
+import 'package:flutter/material.dart';
 
 class MapService {
+  // Get driving directions between two places using Google Maps API
   static Future<Map<String, dynamic>?> getDirections({
     required String origin,
     required String destination,
@@ -18,14 +20,15 @@ class MapService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      print("Directions error: ${response.body}");
+      debugPrint("Directions error: ${response.body}");
       return null;
     }
   }
 
+  // Get distances from the user's location to multiple stations
   static Future<Map<String, dynamic>?> getDistancesFromUser({
     required String userLocation,
-    required List<String> stationCoords, // List of "lat,lng"
+    required List<String> stationCoords, // Format: ["lat,lng", ...]
   }) async {
     final destinations = stationCoords.join('|');
     final url = Uri.parse(
@@ -40,11 +43,12 @@ class MapService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      print("Distance error: ${response.body}");
+      debugPrint("Distance error: ${response.body}");
       return null;
     }
   }
 
+  // Get walking directions instead of driving
   static Future<Map<String, dynamic>?> getWalkingDirections({
     required String origin,
     required String destination,
@@ -61,7 +65,7 @@ class MapService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      print("Walking Directions error: ${response.body}");
+      debugPrint("Walking Directions error: ${response.body}");
       return null;
     }
   }
