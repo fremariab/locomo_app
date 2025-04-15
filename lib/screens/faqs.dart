@@ -66,8 +66,9 @@ class _FAQScreenState extends State<FAQScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(),
-              _buildShortcuts(),
+              const SizedBox(height: 32),
               _buildSearchBar(),
+              const SizedBox(height: 22),
               ..._filteredFaqs.map((faq) => _buildFaqItem(faq)).toList(),
               const SizedBox(height: 32),
             ],
@@ -96,48 +97,6 @@ class _FAQScreenState extends State<FAQScreen> {
           fontWeight: FontWeight.bold,
         ),
       ),
-    );
-  }
-
-  // Shortcut section just below the header
-  Widget _buildShortcuts() {
-    return Column(
-      children: [
-        const SizedBox(height: 24),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'Shortcuts',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              _buildShortcut(
-                icon: Icons.money_off,
-                text: 'Cancel trip and refund tickets',
-              ),
-              const SizedBox(width: 16),
-              _buildShortcut(
-                icon: Icons.swap_horiz,
-                text: 'Exchange Tickets',
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 32),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'Frequently Asked Questions',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        ),
-        const SizedBox(height: 16),
-      ],
     );
   }
 
@@ -175,30 +134,6 @@ class _FAQScreenState extends State<FAQScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  // Reusable widget for shortcut buttons (like cancel/exchange)
-  Widget _buildShortcut({required IconData icon, required String text}) {
-    return Expanded(
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFFC32E31),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: Colors.white),
-            const SizedBox(height: 16),
-            Text(
-              text,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

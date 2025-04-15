@@ -4,10 +4,12 @@ import 'package:locomo_app/screens/search.dart';
 import 'package:locomo_app/screens/saved_locations.dart';
 import 'package:locomo_app/screens/faqs.dart';
 import 'package:locomo_app/screens/user_profile.dart';
-import 'package:locomo_app/widgets/MainScaffold.dart';
+import 'package:locomo_app/screens/trip_details.dart';
+import 'package:locomo_app/widgets/MainScaffold.dart' as widgets;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:locomo_app/models/route.dart';
 
 class RouteCard extends StatelessWidget {
   final String? label;
@@ -20,6 +22,8 @@ class RouteCard extends StatelessWidget {
   final int transferCount;
   final String price;
   final Color transferColor;
+  final Function(String origin, String destination, double fare)? onSaveRoute;
+  final CompositeRoute? routeData;
 
   const RouteCard({
     Key? key,
@@ -33,160 +37,184 @@ class RouteCard extends StatelessWidget {
     required this.transferCount,
     required this.price,
     required this.transferColor,
+    this.onSaveRoute,
+    this.routeData,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0XFFF7f7f7),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xff656565).withOpacity(0.1),
-            blurRadius: 2,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Label and star
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
- 
-              // In the build method, update the label handling:
-              if (label != null && label!.isNotEmpty)
-                Text(
-                  label!,
-                  style: TextStyle(
-                    color: labelColor ?? Colors.black, // Provide default color
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              const Icon(Icons.star_border, color: Colors.black54, size: 24),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          // Times
-          Row(
-            children: [
-              Text(departureTime,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(width: 8),
-              Text("• $duration •",
-                  style:
-                      const TextStyle(fontSize: 12, color: Color(0xff656565))),
-              const SizedBox(width: 8),
-              Text(arrivalTime,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16)),
-              const Spacer(),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          // Route
-          Row(
-            children: [
-              const Icon(Icons.directions_bus_outlined,
-                  size: 16, color: Colors.black54),
-              const SizedBox(width: 8),
-              Text(route, style: const TextStyle(fontSize: 12)),
-            ],
-          ),
-
-          const SizedBox(height: 6),
-
-          // Route details
-          Row(
-            children: [
-              const Icon(Icons.directions_walk,
-                  size: 16, color: Colors.black54),
-              const SizedBox(width: 8),
-              Text(routeDetails, style: const TextStyle(fontSize: 12)),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          // Bottom Row: Transfers + Price + Share
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Transfers
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: transferColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      '$transferCount ${transferCount == 1 ? 'Transfer' : 'Transfers'}',
-                      style: TextStyle(
-                          color: transferColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500),
-                    ),
-                    const Icon(Icons.keyboard_arrow_down,
-                        size: 16, color: Colors.black54),
-                  ],
-                ),
+    return GestureDetector(
+      onTap: () {
+        if (routeData != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TripDetailsScreen(
+                route: routeData!,
               ),
+            ),
+          );
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0XFFF7f7f7),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xff656565).withOpacity(0.1),
+              blurRadius: 2,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Label and star
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (label != null && label!.isNotEmpty)
+                  Text(
+                    label!,
+                    style: TextStyle(
+                      color: labelColor ?? Colors.black,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                GestureDetector(
+                  onTap: () {
+                    // Call the onSaveRoute callback if provided
+                    if (onSaveRoute != null) {
+                      // Extract fare from price string (remove 'GHS ' prefix)
+                      final fare = double.tryParse(price.replaceAll('GHS ', '')) ?? 0.0;
+                      onSaveRoute!(route.split(' → ')[0], route.split(' → ')[1], fare);
+                    }
+                  },
+                  child: const Icon(Icons.star_border, color: Colors.black54, size: 24),
+                ),
+              ],
+            ),
 
-              // Price + Share
-              Row(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+            const SizedBox(height: 12),
+
+            // Times
+            Row(
+              children: [
+                Text(departureTime,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(width: 8),
+                Text("• $duration •",
+                    style:
+                        const TextStyle(fontSize: 12, color: Color(0xff656565))),
+                const SizedBox(width: 8),
+                Text(arrivalTime,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16)),
+                const Spacer(),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            // Route
+            Row(
+              children: [
+                const Icon(Icons.directions_bus_outlined,
+                    size: 16, color: Colors.black54),
+                const SizedBox(width: 8),
+                Text(route, style: const TextStyle(fontSize: 12)),
+              ],
+            ),
+
+            const SizedBox(height: 6),
+
+            // Route details
+            Row(
+              children: [
+                const Icon(Icons.directions_walk,
+                    size: 16, color: Colors.black54),
+                const SizedBox(width: 8),
+                Text(routeDetails, style: const TextStyle(fontSize: 12)),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            // Bottom Row: Transfers + Price + Share
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Transfers
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: transferColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
                     children: [
-                      Text(price,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
-                      const Text('One-way',
-                          style: TextStyle(
-                              fontSize: 12, color: Color(0xff656565))),
+                      Text(
+                        '$transferCount ${transferCount == 1 ? 'Transfer' : 'Transfers'}',
+                        style: TextStyle(
+                            color: transferColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500),
+                      ),
+                      const Icon(Icons.keyboard_arrow_down,
+                          size: 16, color: Colors.black54),
                     ],
                   ),
-                  const SizedBox(width: 12),
-                  GestureDetector(
-                    onTap: () async {
-                      // Ask user to pick a contact from their list
-                      final phone = await pickContactFromList(context);
+                ),
 
-                      if (phone != null) {
-                        // Build SMS content with full route information
-                        final msg = "Trotro Route Info:\n"
-                            "Route: $route\n"
-                            "Details: $routeDetails\n"
-                            "Fare: $price\n"
-                            "Departure: $departureTime\n"
-                            "Arrival: $arrivalTime\n"
-                            "Duration: $duration";
+                // Price + Share
+                Row(
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(price,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16)),
+                        const Text('One-way',
+                            style: TextStyle(
+                                fontSize: 12, color: Color(0xff656565))),
+                      ],
+                    ),
+                    const SizedBox(width: 12),
+                    GestureDetector(
+                      onTap: () async {
+                        // Ask user to pick a contact from their list
+                        final phone = await pickContactFromList(context);
 
-                        // Launch SMS app with prefilled message
-                        await _shareRouteViaSMS(msg, phone);
-                      }
-                    },
-                    child:
-                        const Icon(Icons.share_rounded, color: Colors.black54),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+                        if (phone != null) {
+                          // Build SMS content with full route information
+                          final msg = "Trotro Route Info:\n"
+                              "Route: $route\n"
+                              "Details: $routeDetails\n"
+                              "Fare: $price\n"
+                              "Departure: $departureTime\n"
+                              "Arrival: $arrivalTime\n"
+                              "Duration: $duration";
+
+                          // Launch SMS app with prefilled message
+                          await _shareRouteViaSMS(msg, phone);
+                        }
+                      },
+                      child:
+                          const Icon(Icons.share_rounded, color: Colors.black54),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -287,14 +315,53 @@ Future<void> _shareRouteViaSMS(String message, String phoneNumber) async {
   }
 }
 
-class TravelResultsPage extends StatelessWidget {
-  final List<dynamic> results;
+class TravelResultsPage extends StatefulWidget {
+  final List<CompositeRoute> results;
+  final String? origin;
+  final String? destination;
+  final Function(String origin, String destination, double fare)? onSaveRoute;
 
-  const TravelResultsPage({Key? key, required this.results}) : super(key: key);
+  const TravelResultsPage({
+    Key? key, 
+    required this.results,
+    this.origin,
+    this.destination,
+    this.onSaveRoute,
+  }) : super(key: key);
+
+  @override
+  State<TravelResultsPage> createState() => _TravelResultsPageState();
+}
+
+class _TravelResultsPageState extends State<TravelResultsPage> {
+  String _sortBy = 'recommended'; // Default sort
+  
+  // Sort the results based on the selected criteria
+  List<CompositeRoute> get sortedResults {
+    final results = List<CompositeRoute>.from(widget.results);
+    
+    switch (_sortBy) {
+      case 'lowest_fare':
+        results.sort((a, b) => a.totalFare.compareTo(b.totalFare));
+        break;
+      case 'shortest_time':
+        results.sort((a, b) => a.totalDuration.compareTo(b.totalDuration));
+        break;
+      case 'fewest_transfers':
+        results.sort((a, b) => a.segments.length.compareTo(b.segments.length));
+        break;
+      case 'recommended':
+      default:
+        // Keep original order for recommended
+        break;
+    }
+    
+    return results;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return MainScaffold(
+    return widgets.MainScaffold(
       currentIndex: 0,
       child: Scaffold(
         backgroundColor: Colors.white,
@@ -315,69 +382,83 @@ class TravelResultsPage extends StatelessWidget {
             ),
           ),
           centerTitle: false,
+          actions: [
+            // Sort button
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.sort, color: Colors.white),
+              onSelected: (String value) {
+                setState(() {
+                  _sortBy = value;
+                });
+              },
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                const PopupMenuItem<String>(
+                  value: 'recommended',
+                  child: Text('Recommended'),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'lowest_fare',
+                  child: Text('Lowest Fare'),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'shortest_time',
+                  child: Text('Shortest Time'),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'fewest_transfers',
+                  child: Text('Fewest Transfers'),
+                ),
+              ],
+            ),
+          ],
         ),
-        body: results.isEmpty
+        body: widget.results.isEmpty
             ? const Center(child: Text("No routes found"))
             : ListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: results.length,
+                itemCount: sortedResults.length,
                 itemBuilder: (context, index) {
-                  final route = results[index];
-
+                  final route = sortedResults[index];
+                  
+                  // Safely get the first and last segments
+                  final firstSegment = route.segments.isNotEmpty ? route.segments.first : null;
+                  final lastSegment = route.segments.length > 1 ? route.segments.last : firstSegment;
+                  
                   // Calculate duration text
-                  final duration = route['time'] != null
-                      ? '${route['time']} min'
-                      : 'Unknown duration';
+                  final duration = '${route.totalDuration} min';
 
-                  // Build route details text with walking info if available
-                  String routeDetails = route['details'] ?? 'Direct route';
-                  if (route['originWalking'] != null ||
-                      route['destinationWalking'] != null) {
-                    routeDetails += ' (with walking segments)';
+                  // Build route details text
+                  String routeDetails = firstSegment?.description ?? 'Unknown route';
+                  if (lastSegment != null && lastSegment != firstSegment) {
+                    routeDetails += ' → ${lastSegment.description}';
                   }
+
+                  // Build the route display text with null safety
+                  final routeText = '${route.origin ?? 'Unknown'} → ${route.destination ?? 'Unknown'}';
+                  
+                  // Ensure departure and arrival times are not null
+                  final departureTime = route.departureTime.isNotEmpty ? route.departureTime : 'Now';
+                  final arrivalTime = route.arrivalTime.isNotEmpty ? route.arrivalTime : 'Later';
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12.0),
                     child: RouteCard(
                       label: index == 0 ? 'Recommended' : null,
                       labelColor: index == 0 ? Colors.green[700] : null,
-                      departureTime: route['departure_time'] ?? 'N/A',
-                      arrivalTime: route['arrival_time'] ?? 'N/A',
+                      departureTime: departureTime,
+                      arrivalTime: arrivalTime,
                       duration: duration,
-                      route: '${route['origin']} → ${route['destination']}',
+                      route: routeText,
                       routeDetails: routeDetails,
-                      transferCount: route['transfers'] ?? 0,
-                      price: route['fare'] != null
-                          ? 'GHS ${route['fare'].toStringAsFixed(2)}'
-                          : 'GHS 0.00',
-                      transferColor: Color(0xFFC32E31),
+                      transferCount: route.segments.length - 1,
+                      price: 'GHS ${route.totalFare.toStringAsFixed(2)}',
+                      transferColor: Colors.red,
+                      onSaveRoute: widget.onSaveRoute,
+                      routeData: route,
                     ),
                   );
-                }
-                // itemBuilder: (context, index) {
-                //   final route = results[index];
-
-                //   return Padding(
-                //     padding: const EdgeInsets.only(bottom: 12.0),
-                //     child: RouteCard(
-                //       label: index == 0 ? 'Recommended' : null,
-                //       labelColor: index == 0 ? Colors.green[700] : null,
-                //       departureTime: route['departure_time'] ?? 'N/A',
-                //       arrivalTime: route['arrival_time'] ?? 'N/A',
-                //       duration: '${route['time']} min',
-                //       route: '${route['origin']} → ${route['destination']}',
-                //       routeDetails: route['details'] ?? 'Direct route',
-                //       transferCount: route['transfers'] ?? 0,
-                //       // price: 'GHS ${route['fare'].toString()}',
-                //       price: route['fare'] != null
-                //           ? 'GHS ${route['fare']}'
-                //           : 'GHS 0.00',
-
-                //       transferColor: Color(0xFFC32E31),
-                //     ),
-                //   );
-                // },
-                ),
+                },
+              ),
       ),
     );
   }
@@ -401,7 +482,10 @@ class MainScaffold extends StatelessWidget {
     Widget page;
     switch (index) {
       case 0:
-        page = const TravelHomePage();
+        page = const TravelHomePage(
+          initialOrigin: null,
+          initialDestination: null,
+        );
         break;
       case 1:
         page = const NearestStationsScreen();
@@ -416,7 +500,10 @@ class MainScaffold extends StatelessWidget {
         page = const UserProfileScreen();
         break;
       default:
-        page = const TravelHomePage();
+        page = const TravelHomePage(
+          initialOrigin: null,
+          initialDestination: null,
+        );
     }
 
     Navigator.pushReplacement(

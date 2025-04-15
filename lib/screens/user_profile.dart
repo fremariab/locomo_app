@@ -7,6 +7,7 @@ import 'package:locomo_app/models/user_profile.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'login.dart';
+import 'package:locomo_app/screens/saved_locations.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -282,7 +283,12 @@ class UserProfileScreenState extends State<UserProfileScreen> {
                             _buildSettingsItem(
                               icon: Icons.alt_route_outlined,
                               title: 'Saved Routes',
-                              onTap: () => Navigator.pushNamed(context, '/saved-routes'),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const SavedLocationsScreen(),
+                                ),
+                              ),
                             ),
                             _buildSettingsItem(
                               icon: Icons.public,

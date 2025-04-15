@@ -1,88 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-// This screen lets an admin add a new trotro route
-class AdminAddRoutePage extends StatefulWidget {
-  const AdminAddRoutePage({Key? key}) : super(key: key);
+class AdminAddRouteScreen extends StatefulWidget {
+  const AdminAddRouteScreen({Key? key}) : super(key: key);
 
   @override
-  State<AdminAddRoutePage> createState() => _AdminAddRoutePageState();
+  State<AdminAddRouteScreen> createState() => _AdminAddRouteScreenState();
 }
 
-class _AdminAddRoutePageState extends State<AdminAddRoutePage> {
+class _AdminAddRouteScreenState extends State<AdminAddRouteScreen> {
   final _formKey = GlobalKey<FormState>();
-
-  // Controllers for all input fields
-  final TextEditingController originController = TextEditingController();
-  final TextEditingController destinationController = TextEditingController();
-  final TextEditingController timeController = TextEditingController();
-  final TextEditingController fareController = TextEditingController();
-  final TextEditingController transferController = TextEditingController();
-  final TextEditingController detailsController = TextEditingController();
-
-  // When user hits "submit", collect all the data
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      final newRoute = {
-        "origin": originController.text.trim(),
-        "destination": destinationController.text.trim(),
-        "time": int.tryParse(timeController.text.trim()) ?? 0,
-        "fare": double.tryParse(fareController.text.trim()) ?? 0.0,
-        "transfers": int.tryParse(transferController.text.trim()) ?? 0,
-        "details": detailsController.text.trim(),
-        "departure_time": "6:15 AM",
-        "arrival_time": "7:00 AM",
-      };
-
-      // Placeholder debugPrint — later this should upload to Firebase
-      debugPrint("Route Submitted: $newRoute");
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Route successfully added!")),
-      );
-
-      // Reset all fields
-      originController.clear();
-      destinationController.clear();
-      timeController.clear();
-      fareController.clear();
-      transferController.clear();
-      detailsController.clear();
-    }
-  }
+  final _routeNameController = TextEditingController();
+  final _originController = TextEditingController();
+  final _destinationController = TextEditingController();
+  final _stopsController = TextEditingController();
+  final _fareController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Add New Route"),
+        title: const Text('Add Route'),
         backgroundColor: const Color(0xFFC32E31),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
-          child: ListView(
+          child: Column(
             children: [
-              _buildTextField(originController, "Origin"),
-              _buildTextField(destinationController, "Destination"),
-              _buildTextField(timeController, "Estimated Time (minutes)", isNumber: true),
-              _buildTextField(fareController, "Fare (GHS)", isNumber: true),
-              _buildTextField(transferController, "Transfer Count", isNumber: true),
-              _buildTextField(detailsController, "Route Details", maxLines: 3),
-              const SizedBox(height: 20),
+              _buildInput('Route Name', _routeNameController),
+              _buildInput('Origin', _originController),
+              _buildInput('Destination', _destinationController),
+              _buildInput('Stops (comma-separated)', _stopsController),
+              _buildInput('Fare (optional)', _fareController, isNumber: true),
+              const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _submitForm,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFC32E31),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                child: const Text(
-                  "Submit",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                child: const Text('Add Route'),
               ),
             ],
           ),
@@ -91,26 +49,77 @@ class _AdminAddRoutePageState extends State<AdminAddRoutePage> {
     );
   }
 
-  // This builds each input field with consistent styling
-  Widget _buildTextField(TextEditingController controller, String label,
-      {bool isNumber = false, int maxLines = 1}) {
+  Widget _buildInput(String label, TextEditingController controller,
+      {bool isNumber = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: TextFormField(
         controller: controller,
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-        maxLines: maxLines,
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
         ),
         validator: (value) {
           if (value == null || value.trim().isEmpty) {
-            return "This field is required";
+            return 'This field is required';
+          }
+          if (isNumber && value.trim().isNotEmpty && double.tryParse(value.trim()) == null) {
+            return 'Enter a valid number';
           }
           return null;
         },
       ),
     );
+  }
+
+  void _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final stopsList = _stopsController.text
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+
+    if (stopsList.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter at least 2 stops.')),
+      );
+      return;
+    }
+
+    final routeData = {
+      'id': _routeNameController.text.trim().toLowerCase().replaceAll(' ', '_'),
+      'routeName': _routeNameController.text.trim(),
+      'origin': _originController.text.trim(),
+      'destination': _destinationController.text.trim(),
+      'fare': _fareController.text.trim().isEmpty
+          ? null
+          : double.tryParse(_fareController.text.trim()),
+      'stops': stopsList,
+    };
+
+    await FirebaseFirestore.instance
+        .collection('routes')
+        .doc(routeData['id'] as String?)
+        .set(routeData);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Route added successfully!')),
+      );
+      Navigator.pop(context);
+    }
+  }
+
+  @override
+  void dispose() {
+    _routeNameController.dispose();
+    _originController.dispose();
+    _destinationController.dispose();
+    _stopsController.dispose();
+    _fareController.dispose();
+    super.dispose();
   }
 }

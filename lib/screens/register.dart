@@ -22,6 +22,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   final AuthService _authService = AuthService();
 
+  // Password strength validation
+  String? _validatePassword(String password) {
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters long';
+    }
+    if (!password.contains(RegExp(r'[A-Z]'))) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (!password.contains(RegExp(r'[a-z]'))) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    if (!password.contains(RegExp(r'[0-9]'))) {
+      return 'Password must contain at least one number';
+    }
+    if (!password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
+      return 'Password must contain at least one special character';
+    }
+    return null;
+  }
+
   // Show a small popup message
   void _showMessage(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
@@ -36,6 +56,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
       _showMessage("Please fill in all fields.");
+      return;
+    }
+
+    // Validate password strength
+    final passwordError = _validatePassword(password);
+    if (passwordError != null) {
+      _showMessage(passwordError);
       return;
     }
 
