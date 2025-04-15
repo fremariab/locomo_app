@@ -142,30 +142,7 @@ class RouteService {
     }
 
     // Calculate timing information
-    final (departureTime, arrivalTime, totalDuration) =
-        _calculateTiming(segments);
-
-    return [
-      CompositeRoute(
-        segments: segments,
-        totalFare: (data['totalFare'] as num?)?.toDouble() ?? 0.0,
-        totalDuration: totalDuration,
-        departureTime: departureTime,
-        arrivalTime: arrivalTime,
-        origin: origin,
-        destination: destination,
-      )
-    ];
-  }
-
-  /// Creates a walk segment from response data
-  static RouteSegment _createWalkSegment(
-    Map<String, dynamic> data, {
-    String prefix = 'Walk',
-  }) {
-    return RouteSegment(
-      description: data['instructions'] ?? '$prefix',
-      fare: 0,
+:wq
       duration: _parseDuration(data['duration'] ?? '0 min'),
       type: 'walk',
     );
