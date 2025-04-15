@@ -28,7 +28,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Show message at the bottom
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   // Handle login logic
@@ -47,7 +48,12 @@ class _LoginScreenState extends State<LoginScreen> {
       final user = await _authService.signInWithEmail(email, password);
       if (user != null) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => TravelHomePage()),
+          MaterialPageRoute(
+            builder: (context) => const TravelHomePage(
+              initialOrigin: null,
+              initialDestination: null,
+            ),
+          ),
         );
       } else {
         _showMessage('Login failed. Please try again.');
@@ -62,10 +68,12 @@ class _LoginScreenState extends State<LoginScreen> {
           _showMessage('This account has been disabled');
           break;
         case 'too-many-requests':
-          _showMessage('Too many failed login attempts. Please try again later');
+          _showMessage(
+              'Too many failed login attempts. Please try again later');
           break;
         case 'network-request-failed':
-          _showMessage('No internet connection. Please check your network and try again.');
+          _showMessage(
+              'No internet connection. Please check your network and try again.');
           break;
         default:
           _showMessage('Login error: ${e.message}');
@@ -98,8 +106,10 @@ class _LoginScreenState extends State<LoginScreen> {
         _showMessage('Failed to send password reset email');
       }
     } catch (e) {
-      if (e.toString().contains('network') || e.toString().contains('connection')) {
-        _showMessage('No internet connection. Please check your network and try again.');
+      if (e.toString().contains('network') ||
+          e.toString().contains('connection')) {
+        _showMessage(
+            'No internet connection. Please check your network and try again.');
       } else {
         _showMessage('Error: ${e.toString()}');
       }
@@ -186,7 +196,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
                       ),
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
                     style: const TextStyle(
                       color: Colors.black,
@@ -218,11 +229,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderSide: BorderSide(color: Color(0xFFD9D9D9)),
                       ),
                       border: const OutlineInputBorder(),
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                           color: const Color(0xFFD9D9D9),
                         ),
                         onPressed: () {
@@ -303,7 +316,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       GestureDetector(
                         onTap: () {
                           Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                            MaterialPageRoute(
+                                builder: (context) => const RegisterScreen()),
                           );
                         },
                         child: const Text(

@@ -417,7 +417,7 @@ class NearestStationsScreenState extends State<NearestStationsScreen> {
   Future<void> _loadStationsFromFirestore() async {
     try {
       final stationsSnapshot =
-          await _firestore.collection('trotro_stations').get();
+          await _firestore.collection('stations').get();
 
       // Clear existing markers except current location
       _markers
@@ -768,7 +768,7 @@ class NearestStationsScreenState extends State<NearestStationsScreen> {
 
       // Query Firestore for stations
       final stationsSnapshot =
-          await _firestore.collection('trotro_stations').get();
+          await _firestore.collection('stations').get();
 
       // Calculate distance to each station
       List<Map<String, dynamic>> stationsWithDistance = [];
@@ -1037,7 +1037,7 @@ class NearestStationsScreenState extends State<NearestStationsScreen> {
 
       // Cache station data from Firestore
       final stationsSnapshot =
-          await _firestore.collection('trotro_stations').get();
+          await _firestore.collection('stations').get();
       final List<Map<String, dynamic>> stationData = [];
 
       for (var doc in stationsSnapshot.docs) {

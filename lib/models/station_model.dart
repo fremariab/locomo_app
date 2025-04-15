@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class TrotroStation {
   final String id;
   final String name;
@@ -5,7 +8,9 @@ class TrotroStation {
   final double latitude;
   final double longitude;
   final List<String>? routes;
-  final Map<String, dynamic>? additionalInfo;
+  final List<String>? stops;
+  final double? fare;
+Map<String, dynamic>? additionalInfo;
 
   TrotroStation({
     required this.id,
@@ -14,11 +19,14 @@ class TrotroStation {
     required this.latitude,
     required this.longitude,
     this.routes,
+    this.stops,
+    this.fare,
     this.additionalInfo,
   });
 
   // Factory constructor to create a Station from Firestore document
-  factory TrotroStation.fromFirestore(String id, Map<String, dynamic> data) {
+  factory TrotroStation.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
     // Handle different coordinate storage formats
     double latitude, longitude;
     
@@ -43,7 +51,7 @@ class TrotroStation {
     }
     
     return TrotroStation(
-      id: id,
+      id: doc.id,
       name: data['name'] ?? 'Unknown Station',
       description: data['description'],
       latitude: latitude,
@@ -51,6 +59,10 @@ class TrotroStation {
       routes: data['routes'] != null 
           ? List<String>.from(data['routes']) 
           : null,
+      stops: data['stops'] != null
+          ? List<String>.from(data['stops'])
+          : null,
+      fare: data['fare']?.toDouble(),
       additionalInfo: data['additionalInfo'],
     );
   }
@@ -64,6 +76,8 @@ class TrotroStation {
       'lat': latitude,
       'lng': longitude,
       'routes': routes,
+      'stops': stops,
+      'fare': fare,
       'additionalInfo': additionalInfo,
     };
   }
@@ -79,7 +93,43 @@ class TrotroStation {
       routes: json['routes'] != null 
           ? List<String>.from(json['routes']) 
           : null,
+      stops: json['stops'] != null
+          ? List<String>.from(json['stops'])
+          : null,
+      fare: json['fare']?.toDouble(),
       additionalInfo: json['additionalInfo'],
     );
   }
+
+  // Calculate distance to another location using the Haversine formula
+  double distanceTo(double targetLat, double targetLng) {
+    const double earthRadius = 6371; // Earth's radius in kilometers
+    
+    double dLat = _toRadians(targetLat - latitude);
+    double dLng = _toRadians(targetLng - longitude);
+    
+    double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_toRadians(latitude)) * math.cos(_toRadians(targetLat)) *
+        math.sin(dLng / 2) * math.sin(dLng / 2);
+    
+    double c = 2 * math.asin(math.sqrt(a));
+    return earthRadius * c;
+  }
+
+  // Helper method to convert degrees to radians
+  double _toRadians(double degree) {
+    return degree * (math.pi / 180);
+  }
+
+  // Check if this station serves a particular destination
+  bool servesDestination(String destination) {
+    if (stops == null) return false;
+    
+    // Convert both to lowercase for case-insensitive comparison
+    final destLower = destination.toLowerCase();
+    return stops!.any((stop) => stop.toLowerCase().contains(destLower));
+  }
+
+  // Get the location as a string for API calls
+  String get locationString => '$latitude,$longitude';
 }

@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:permission_handler/permission_handler.dart';
 import '../utils/constants.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 class MapService {
   // Get driving directions between two places using Google Maps API
@@ -47,6 +49,14 @@ class MapService {
       return null;
     }
   }
+  static Future<String?> getUserLocation() async {
+  final permission = await Permission.location.request();
+  if (!permission.isGranted) return null;
+
+  final location = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+  return '${location.latitude},${location.longitude}';
+}
+
 
   // Get walking directions instead of driving
   static Future<Map<String, dynamic>?> getWalkingDirections({

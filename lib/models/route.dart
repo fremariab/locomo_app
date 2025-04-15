@@ -14,6 +14,16 @@ class RouteSegment {
     required this.type,
     this.departureTime,
   });
+  // Factory method to create a RouteSegment from a JSON map
+  factory RouteSegment.fromJson(Map<String, dynamic> json) {
+    return RouteSegment(
+      description: json['description']?.toString() ?? '',
+      fare: (json['fare'] ?? 0).toDouble(),
+      duration: json['duration']?.toInt() ?? 0,
+      type: json['type']?.toString() ?? 'unknown',
+      departureTime: json['departureTime']?.toString(),
+    );
+  }
 }
 
 class CompositeRoute {
@@ -38,7 +48,7 @@ class CompositeRoute {
   // Factory method to create a CompositeRoute from a map
   factory CompositeRoute.fromMap(Map<String, dynamic> map) {
     final List<RouteSegment> routeSegments = [];
-    
+
     // Process each segment in the route
     final segments = map['segments'] as List? ?? [];
     for (var segment in segments) {
@@ -50,7 +60,7 @@ class CompositeRoute {
         type: segmentMap['type']?.toString() ?? 'unknown',
         departureTime: segmentMap['departureTime']?.toString(),
       );
-      
+
       routeSegments.add(routeSegment);
     }
 
@@ -64,17 +74,31 @@ class CompositeRoute {
       destination: map['destination']?.toString(),
     );
   }
-
+  factory CompositeRoute.fromJson(Map<String, dynamic> json) {
+    return CompositeRoute(
+      segments: (json['segments'] as List<dynamic>)
+          .map((e) => RouteSegment.fromJson(e))
+          .toList(),
+      totalFare: (json['totalFare'] ?? 0).toDouble(),
+      totalDuration: json['totalDuration'] ?? 0,
+      departureTime: json['departureTime'] ?? '',
+      arrivalTime: json['arrivalTime'] ?? '',
+      origin: json['origin'] ?? '',
+      destination: json['destination'] ?? '',
+    );
+  }
   // Convert the route to a map for storage
   Map<String, dynamic> toMap() {
     return {
-      'segments': segments.map((segment) => {
-        'description': segment.description,
-        'fare': segment.fare,
-        'duration': segment.duration,
-        'type': segment.type,
-        'departureTime': segment.departureTime,
-      }).toList(),
+      'segments': segments
+          .map((segment) => {
+                'description': segment.description,
+                'fare': segment.fare,
+                'duration': segment.duration,
+                'type': segment.type,
+                'departureTime': segment.departureTime,
+              })
+          .toList(),
       'totalFare': totalFare,
       'totalDuration': totalDuration,
       'departureTime': departureTime,
@@ -83,4 +107,4 @@ class CompositeRoute {
       'destination': destination,
     };
   }
-} 
+}

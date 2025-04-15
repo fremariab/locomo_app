@@ -285,7 +285,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                             Text(
                               widget.isFromFavorites ? 'Saved Route' : 'Recommended',
                               style: const TextStyle(
-                                color: Color(0xFF26A69A),
+                                color: Colors.green,
                                 fontWeight: FontWeight.w500,
                                 fontSize: 14,
                               ),
@@ -435,18 +435,16 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                             const SizedBox(height: 16),
                             
                             // Trip steps
-                            ...widget.route.segments.map((segment) => Padding(
-                              padding: const EdgeInsets.only(bottom: 16.0),
-                              child: TripStep(
-                                time: segment.departureTime ?? '',
-                                location: segment.description,
-                                instruction: segment.type == 'walk' 
-                                    ? 'Walk for ${segment.duration} min' 
-                                    : 'Ride for ${segment.duration} min',
-                                icon: segment.type == 'walk' 
-                                    ? Icons.directions_walk 
-                                    : Icons.directions_bus,
-                              ),
+                            ...widget.route.segments.map((segment) => TripStep(
+                              time: segment.departureTime ?? '',
+                              location: segment.description,
+                              instruction: segment.type == 'walk' 
+                                  ? 'Walk for ${segment.duration} min' 
+                                  : 'Ride for ${segment.duration} min',
+                              icon: segment.type == 'walk' 
+                                  ? Icons.directions_walk 
+                                  : Icons.directions_bus,
+                              transportType: segment.type,
                             )).toList(),
                             
                             // Final destination
@@ -455,6 +453,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                               location: widget.route.destination ?? 'Destination',
                               instruction: '',
                               icon: Icons.location_on,
+                              transportType: 'walk',
                             ),
                           ],
                         ),
@@ -476,6 +475,7 @@ class TripStep extends StatelessWidget {
   final String location;
   final String instruction;
   final IconData icon;
+  final String transportType;
 
   const TripStep({
     Key? key,
@@ -483,10 +483,26 @@ class TripStep extends StatelessWidget {
     required this.location,
     required this.instruction,
     required this.icon,
+    this.transportType = 'walk',
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    // Determine icon and color based on transport type
+    IconData displayIcon = icon;
+    Color iconColor = Colors.black54;
+    
+    if (transportType == 'drive') {
+      displayIcon = Icons.directions_car;
+      iconColor = Colors.blue;
+    } else if (transportType == 'walk') {
+      displayIcon = Icons.directions_walk;
+      iconColor = Colors.green;
+    } else if (transportType == 'bus') {
+      displayIcon = Icons.directions_bus;
+      iconColor = Colors.orange;
+    }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -514,9 +530,9 @@ class TripStep extends StatelessWidget {
             ),
             child: Center(
               child: Icon(
-                icon,
+                displayIcon,
                 size: 16,
-                color: Colors.black54,
+                color: iconColor,
               ),
             ),
           ),
