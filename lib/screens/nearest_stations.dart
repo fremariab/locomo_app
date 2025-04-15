@@ -303,75 +303,76 @@ class NearestStationsScreenState extends State<NearestStationsScreen> {
   }
 
 // In NearestStationsScreen
-Future<void> _downloadMapAsPdf() async {
-  final scaffold = ScaffoldMessenger.of(context);
-  
-  try {
-    // 1. Check permissions
-    if (!await _checkStoragePermission()) return;
-    
-    // 2. Get location if needed
-    if (_currentLocation == null) {
-      await _getCurrentLocation();
+  Future<void> _downloadMapAsPdf() async {
+    final scaffold = ScaffoldMessenger.of(context);
+
+    try {
+      // 1. Check permissions
+      if (!await _checkStoragePermission()) return;
+
+      // 2. Get location if needed
       if (_currentLocation == null) {
-        throw Exception('Could not get current location');
+        await _getCurrentLocation();
+        if (_currentLocation == null) {
+          throw Exception('Could not get current location');
+        }
       }
+
+      // 3. Download with progress
+      _showLoadingDialog('Downloading map...');
+      final path = await MapDownloader.downloadMapForLocation(
+        location: ll.LatLng(
+            _currentLocation!.latitude!, _currentLocation!.longitude!),
+        fileName: 'trotro_map',
+        radius: 300.0,
+        minZoom: 12,
+        maxZoom: 13,
+      );
+
+      // 4. Show result
+      Navigator.pop(context); // Dismiss loading
+      _showDownloadSuccess(path);
+    } catch (e) {
+      Navigator.pop(context); // Dismiss loading if still showing
+      _showDownloadError(e.toString());
     }
-
-    // 3. Download with progress
-    _showLoadingDialog('Downloading map...');
-    final path = await MapDownloader.downloadMapForLocation(
-  location: ll.LatLng(_currentLocation!.latitude!, _currentLocation!.longitude!),
-  fileName: 'trotro_map',
-);
-
-    
-    // 4. Show result
-    Navigator.pop(context); // Dismiss loading
-    _showDownloadSuccess(path);
-    
-  } catch (e) {
-    Navigator.pop(context); // Dismiss loading if still showing
-    _showDownloadError(e.toString());
   }
-}
 
 // Helper methods
-Future<bool> _checkStoragePermission() async {
-  if (!Platform.isAndroid) return true;
+  Future<bool> _checkStoragePermission() async {
+    if (!Platform.isAndroid) return true;
 
-  if (await Permission.manageExternalStorage.isGranted) return true;
+    if (await Permission.manageExternalStorage.isGranted) return true;
 
-  var status = await Permission.manageExternalStorage.request();
-  if (status.isGranted) return true;
+    var status = await Permission.manageExternalStorage.request();
+    if (status.isGranted) return true;
 
-  if (status.isPermanentlyDenied) {
-    await openAppSettings();
+    if (status.isPermanentlyDenied) {
+      await openAppSettings();
+    }
+
+    return false;
   }
 
-  return false;
-}
-
-
-void _showDownloadSuccess(String path) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text('Map saved to:\n${path.split('/').last}'),
-      duration: Duration(seconds: 5),
-      action: SnackBarAction(
-        label: 'OPEN',
-        onPressed: () => OpenFile.open(path),
+  void _showDownloadSuccess(String path) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Map saved to:\n${path.split('/').last}'),
+        duration: Duration(seconds: 5),
+        action: SnackBarAction(
+          label: 'OPEN',
+          onPressed: () => OpenFile.open(path),
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-void _showDownloadError(String error) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text('Download failed: $error')),
-  );
-  debugPrint('Download error: $error');
-}
+  void _showDownloadError(String error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Download failed: $error')),
+    );
+    debugPrint('Download error: $error');
+  }
 
 // Update current location marker
   void _updateCurrentLocationMarker() async {
@@ -1106,17 +1107,18 @@ void _showDownloadError(String error) {
       _loadStationsFromFirestore();
     }
   }
+
   void _showPermissionDeniedSnackbar() {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: const Text('Storage permission required to download maps'),
-      action: SnackBarAction(
-        label: 'SETTINGS',
-        onPressed: () => openAppSettings(),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Storage permission required to download maps'),
+        action: SnackBarAction(
+          label: 'SETTINGS',
+          onPressed: () => openAppSettings(),
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   // Show location permission denied dialog
   void _showPermissionDeniedDialog() {
@@ -1349,7 +1351,6 @@ void _showDownloadError(String error) {
                     child: _buildScaleBar(),
                   ),
 
-                
                   // Bottom buttons
                   // In your Stack widget, replace the existing bottom buttons Positioned widget with this:
 
