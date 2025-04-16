@@ -1,11 +1,16 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:http/http.dart' as http;
 import 'package:locomo_app/models/route.dart';
 import 'package:locomo_app/services/database_helper.dart';
 import 'package:locomo_app/services/connectivity_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:locomo_app/widgets/MainScaffold.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/foundation.dart';
 
 class TripDetailsScreen extends StatefulWidget {
   final CompositeRoute route;
@@ -32,6 +37,16 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
 
   @override
   void initState() {
+    debugPrint('Route has ${widget.route.segments.length} segments');
+    for (var i = 0; i < widget.route.segments.length; i++) {
+      final segment = widget.route.segments[i];
+      debugPrint('Segment $i type: ${segment.type}');
+      if (segment.polyline == null) {
+        debugPrint('  - NO POLYLINE DATA');
+      } else {
+        debugPrint('  - Has polyline with ${segment.polyline!.length} points');
+      }
+    }
     super.initState();
     _checkConnectivity();
     _checkIfFavorite();
@@ -60,6 +75,31 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     }
   }
 
+  Future<Map<String, LatLng>> fetchStationCoordinates() async {
+  final Map<String, LatLng> stationCoords = {};
+  try {
+    final snapshot = await FirebaseFirestore.instance.collection('stations').get();
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final id = doc.id;
+      final coord = data['coordinates'];
+      final lat = coord?['lat'];
+      final lng = coord?['lng'];
+
+      if (lat != null && lng != null) {
+        stationCoords[id] = LatLng(lat, lng);
+      } else {
+        debugPrint("⚠️ Missing coordinates for $id");
+      }
+    }
+    debugPrint("✅ Fetched ${stationCoords.length} station coordinates.");
+  } catch (e) {
+    debugPrint("❌ Failed to fetch station coordinates: $e");
+  }
+  return stationCoords;
+}
+
+
   Future<void> _checkIfFavorite() async {
     if (_auth.currentUser == null) return;
     final localFavorites =
@@ -83,93 +123,184 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     }
   }
 
-  Future<void> _setupMapData() async {
-    final Set<Polyline> polylines = {};
-    final Set<Marker> markers = {};
+  Future<String?> _getEncodedPolyline(String origin, String destination) async {
+  const apiKey = 'AIzaSyCPHQDG-WWZvehWnrpSlQAssPAHPUw2pmM'; // Replace with your actual key
+  final modes = ['transit', 'driving', 'walking'];
 
-    // Add debug check for overall route data
-    debugPrint(
-        "Setting up map with route data: ${widget.route.origin} to ${widget.route.destination}");
-    debugPrint("Total segments: ${widget.route.segments.length}");
+  for (String mode in modes) {
+    final url =
+        'https://maps.googleapis.com/maps/api/directions/json?origin=$origin&destination=$destination&key=$apiKey&mode=$mode';
 
-    // Fallback coordinates if we don't find valid polylines
-    LatLng? firstValidPoint;
-    LatLng? lastValidPoint;
+    debugPrint('🌐 Trying mode=$mode for $origin → $destination');
+    final response = await http.get(Uri.parse(url));
 
-    // Process each segment to create polylines
-    for (var i = 0; i < widget.route.segments.length; i++) {
-      final seg = widget.route.segments[i];
-      debugPrint("Processing segment $i: ${seg.type}, ${seg.description}");
-
-      if (seg.polyline != null && seg.polyline!.isNotEmpty) {
-        // Store first valid point we find for fallback
-        firstValidPoint ??= seg.polyline!.first;
-        lastValidPoint = seg.polyline!.last;
-
-        polylines.add(Polyline(
-          polylineId: PolylineId("segment_$i"),
-          color: _getSegmentColor(seg.type),
-          width: 4,
-          points: seg.polyline!,
-        ));
-
-        debugPrint(
-            '✅ Added polyline for segment $i with ${seg.polyline!.length} points');
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['routes'] != null && data['routes'].isNotEmpty) {
+        final polyline = data['routes'][0]['overview_polyline']['points'];
+        debugPrint("✅ Polyline found using mode=$mode");
+        return polyline;
       } else {
-        debugPrint('⚠️ Segment $i has no valid polyline data');
+        debugPrint("❌ No routes found using mode=$mode");
+      }
+    } else {
+      debugPrint("❌ HTTP error (${response.statusCode}) using mode=$mode");
+    }
+  }
+
+  debugPrint("🛑 All modes failed for $origin → $destination");
+  return null;
+}
+
+
+ Future<String?> _getEncodedPolylineFromDescription(String description) async {
+  final stationCoords = await fetchStationCoordinates();
+
+  // Skip anything that doesn't follow the expected format
+  if (!description.contains(' to ')) {
+    // Try fallback handling for things like: "Walk or Kitase Station"
+    if (description.toLowerCase().startsWith("walk or ")) {
+      final fallbackStation = description
+          .replaceFirst(RegExp(r'walk or ', caseSensitive: false), '')
+          .toLowerCase()
+          .trim()
+          .replaceAll(RegExp(r'[^a-z0-9_]+'), '_');
+
+      final coord = stationCoords[fallbackStation];
+      if (coord != null) {
+        final origin = "5.7636,-0.2105"; // Replace with user's location or app default
+        final destination = '${coord.latitude},${coord.longitude}';
+        debugPrint("🩹 Fallback: Getting polyline for user → $fallbackStation");
+        return _getEncodedPolyline(origin, destination);
+      } else {
+        debugPrint("❌ Unknown fallback station: $fallbackStation");
+        return null;
       }
     }
 
-    // Only add markers if we have valid points
-    if (firstValidPoint != null) {
-      markers.add(Marker(
-        markerId: const MarkerId("start"),
-        position: firstValidPoint,
-        infoWindow: InfoWindow(title: widget.route.origin ?? "Start"),
-      ));
+    debugPrint("⏭️ Skipping non-standard description: $description");
+    return null;
+  }
 
-      if (lastValidPoint != null) {
+  // Normal case: "Ride from X to Y"
+  final parts = description.split(' to ');
+  if (parts.length != 2) return null;
+
+  final rawOrigin = parts[0]
+      .toLowerCase()
+      .replaceFirst(RegExp(r'^(walk|ride|drive) from ', caseSensitive: false), '')
+      .replaceAll(RegExp(r'[^a-z0-9_]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .trim();
+
+  final rawDestination = parts[1]
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9_]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .trim();
+
+  final originCoord = stationCoords[rawOrigin];
+  final destinationCoord = stationCoords[rawDestination];
+
+  if (originCoord == null || destinationCoord == null) {
+    debugPrint("❌ Unknown station(s): $rawOrigin or $rawDestination");
+    return null;
+  }
+
+  final origin = '${originCoord.latitude},${originCoord.longitude}';
+  final destination = '${destinationCoord.latitude},${destinationCoord.longitude}';
+
+  return _getEncodedPolyline(origin, destination);
+}
+
+  List<LatLng> _decodePolyline(String encoded) {
+    List<LatLng> points = [];
+    int index = 0, len = encoded.length;
+    int lat = 0, lng = 0;
+
+    while (index < len) {
+      int b, shift = 0, result = 0;
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+
+      shift = 0;
+      result = 0;
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+
+      points.add(LatLng(lat / 1E5, lng / 1E5));
+    }
+    return points;
+  }
+
+  Future<void> _setupMapData() async {
+  final Set<Polyline> polylines = {};
+  final Set<Marker> markers = {};
+LatLng? firstKnownStart;
+LatLng? lastKnownEnd;
+  for (int i = 0; i < widget.route.segments.length; i++) {
+    
+    final seg = widget.route.segments[i];
+  
+    // Fetch polyline if missing
+    if (seg.polyline == null || seg.polyline!.isEmpty) {
+      
+      final encoded = await _getEncodedPolylineFromDescription(seg.description);
+      if (encoded != null) {
+        seg.polyline = _decodePolyline(encoded);
+        debugPrint('✅ Polyline fetched from API for segment $i');
+      } else {
+        debugPrint('❌ Could not fetch polyline for segment $i');
+        continue; // Skip adding this segment if still empty
+      }
+    }
+
+    // Only now check if polyline exists (after potential fetch)
+    if (seg.polyline != null && seg.polyline!.isNotEmpty) {
+      final polyline = Polyline(
+        polylineId: PolylineId("segment_$i"),
+        color: _getSegmentColor(seg.type),
+        width: 4,
+        points: seg.polyline!,
+      );
+
+      polylines.add(polyline);
+
+      // Set start marker only on the first segment
+      if (i == 0) {
+        markers.add(Marker(
+          markerId: const MarkerId("start"),
+          position: seg.polyline!.first,
+          infoWindow: const InfoWindow(title: "Start"),
+        ));
+      }
+
+      // Set end marker on the last segment
+      if (i == widget.route.segments.length - 1) {
         markers.add(Marker(
           markerId: const MarkerId("end"),
-          position: lastValidPoint,
-          infoWindow: InfoWindow(title: widget.route.destination ?? "End"),
+          position: seg.polyline!.last,
+          infoWindow: const InfoWindow(title: "End"),
         ));
-      }
-
-      debugPrint('✅ Added start and end markers');
-    } else {
-      // Add fallback markers based on textual data
-      debugPrint('⚠️ No valid polyline points found, adding fallback markers');
-      // You could add geocoding here to convert origin/destination to coordinates
-    }
-
-    setState(() {
-      _polylines.addAll(polylines);
-      _markers.addAll(markers);
-    });
-
-    // Delay the camera update to ensure the map is ready
-    if (_markers.isNotEmpty && _mapController != null) {
-      try {
-        LatLngBounds bounds = LatLngBounds(
-          southwest: _markers.map((m) => m.position).reduce((a, b) => LatLng(
-              a.latitude < b.latitude ? a.latitude : b.latitude,
-              a.longitude < b.longitude ? a.longitude : b.longitude)),
-          northeast: _markers.map((m) => m.position).reduce((a, b) => LatLng(
-              a.latitude > b.latitude ? a.latitude : b.latitude,
-              a.longitude > b.longitude ? a.longitude : b.longitude)),
-        );
-
-        // Use a longer delay to ensure map is fully loaded
-        Future.delayed(const Duration(milliseconds: 500), () {
-          _mapController!
-              .animateCamera(CameraUpdate.newLatLngBounds(bounds, 70));
-        });
-      } catch (e) {
-        debugPrint('⚠️ Error calculating map bounds: $e');
       }
     }
   }
+
+  setState(() {
+    _polylines.addAll(polylines);
+    _markers.addAll(markers);
+  });
+}
 
   Future<void> _toggleFavorite() async {
     if (_auth.currentUser == null) {
@@ -200,74 +331,49 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
       );
     }
   }
-void _onMapCreated(GoogleMapController controller) {
-  _mapController = controller;
-  
-  // First, check if we have actual data to display
-  if (widget.route.segments.isEmpty || _polylines.isEmpty) {
-    // Hardcode the bounds for Accra Mall to Ashesi University if no valid data
-    _setDefaultMapView(controller);
-    return;
-  }
-  
-  // Set timeout to ensure map is ready
-  Future.delayed(const Duration(milliseconds: 300), () {
-    try {
-      if (_markers.length >= 2) {
-        LatLngBounds bounds = LatLngBounds(
-          southwest: _markers.map((m) => m.position).reduce((a, b) => LatLng(
-              a.latitude < b.latitude ? a.latitude : b.latitude,
-              a.longitude < b.longitude ? a.longitude : b.longitude)),
-          northeast: _markers.map((m) => m.position).reduce((a, b) => LatLng(
-              a.latitude > b.latitude ? a.latitude : b.latitude,
-              a.longitude > b.longitude ? a.longitude : b.longitude)),
-        );
-        controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 80));
-      } else {
+
+  void _onMapCreated(GoogleMapController controller) {
+    _mapController = controller;
+
+    // First, check if we have actual data to display
+    if (widget.route.segments.isEmpty || _polylines.isEmpty) {
+      // Hardcode the bounds for Accra Mall to Ashesi University if no valid data
+      _setDefaultMapView(controller);
+      return;
+    }
+
+    // Set timeout to ensure map is ready
+    Future.delayed(const Duration(milliseconds: 300), () {
+      try {
+        if (_markers.length >= 2) {
+          LatLngBounds bounds = LatLngBounds(
+            southwest: _markers.map((m) => m.position).reduce((a, b) => LatLng(
+                a.latitude < b.latitude ? a.latitude : b.latitude,
+                a.longitude < b.longitude ? a.longitude : b.longitude)),
+            northeast: _markers.map((m) => m.position).reduce((a, b) => LatLng(
+                a.latitude > b.latitude ? a.latitude : b.latitude,
+                a.longitude > b.longitude ? a.longitude : b.longitude)),
+          );
+          controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 80));
+        } else {
+          _setDefaultMapView(controller);
+        }
+      } catch (e) {
+        debugPrint('Error setting map bounds: $e');
         _setDefaultMapView(controller);
       }
-    } catch (e) {
-      debugPrint('Error setting map bounds: $e');
-      _setDefaultMapView(controller);
-    }
-  });
-}
-
-void _setDefaultMapView(GoogleMapController controller) {
-  // Hardcoded default view for Accra Mall to Ashesi University route
-  // These are approximate coordinates, replace with exact values
-  final accraCoordinates = const LatLng(5.6037, -0.1870); // Accra center
-  controller.animateCamera(CameraUpdate.newLatLngZoom(accraCoordinates, 12));
-  
-  // Add fallback markers if needed
-  if (_markers.isEmpty) {
-    setState(() {
-      // Approximate positions - replace with actual coordinates
-      final accraMall = const LatLng(5.632, -0.172);
-      final ashesiUniv = const LatLng(5.759, -0.220);
-      
-      _markers.add(Marker(
-        markerId: const MarkerId("start"),
-        position: accraMall,
-        infoWindow: const InfoWindow(title: "Accra Mall"),
-      ));
-      
-      _markers.add(Marker(
-        markerId: const MarkerId("end"),
-        position: ashesiUniv,
-        infoWindow: const InfoWindow(title: "Ashesi University"),
-      ));
-      
-      // Add a basic polyline connecting the two points
-      _polylines.add(Polyline(
-        polylineId: const PolylineId("backup_route"),
-        color: Colors.blue,
-        width: 4,
-        points: [accraMall, ashesiUniv],
-      ));
     });
   }
-}
+
+  void _setDefaultMapView(GoogleMapController controller) {
+    // Hardcoded default view for Accra Mall to Ashesi University route
+    // These are approximate coordinates, replace with exact values
+    final accraCoordinates = const LatLng(5.6037, -0.1870); // Accra center
+    controller.animateCamera(CameraUpdate.newLatLngZoom(accraCoordinates, 10));
+
+    
+  }
+
   // Add route to favorites
   Future<void> _addToFavorites() async {
     if (_auth.currentUser == null) return;
@@ -374,6 +480,7 @@ void _setDefaultMapView(GoogleMapController controller) {
     return MainScaffold(
       currentIndex: 0,
       child: Scaffold(
+        backgroundColor: Colors.white,
         body: Column(
           children: [
             // App Bar
@@ -391,7 +498,7 @@ void _setDefaultMapView(GoogleMapController controller) {
                   const Expanded(
                     child: Center(
                       child: Text(
-                        'Trip Detailzs',
+                        'Trip Details',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -410,291 +517,159 @@ void _setDefaultMapView(GoogleMapController controller) {
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Trip Summary Card
+                      // Header with "Fastest" label and times
                       Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8.0),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 4.0,
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(16.0),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Fastest label
-                            Text(
-                              widget.isFromFavorites
-                                  ? 'Saved Route'
-                                  : 'Recommended',
-                              style: const TextStyle(
+                            const Text(
+                              'Fastest',
+                              style: TextStyle(
                                 color: Colors.green,
                                 fontWeight: FontWeight.w500,
                                 fontSize: 14,
                               ),
                             ),
                             const SizedBox(height: 8),
-
-                            // Time and star
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      widget.route.departureTime,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                                    const Text(
-                                      ' — ',
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                                    Text(
-                                      widget.route.arrivalTime,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                IconButton(
-                                  icon: Icon(
-                                    _isFavorite
-                                        ? Icons.star
-                                        : Icons.star_border,
-                                    size: 24,
-                                  ),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                  onPressed: _toggleFavorite,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-
-                            // Route text
                             Row(
                               children: [
                                 Text(
-                                  widget.route.origin ?? 'Unknown',
-                                  style: TextStyle(
-                                    color: Colors.grey[700],
-                                    fontSize: 14,
+                                  widget.route.departureTime,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
                                   ),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8.0),
-                                  child: Text(
-                                    '→',
-                                    style: TextStyle(
-                                      color: Colors.grey[700],
-                                      fontSize: 14,
-                                    ),
+                                const Text(
+                                  ' → ',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 18,
                                   ),
                                 ),
                                 Text(
-                                  widget.route.destination ?? 'Unknown',
-                                  style: TextStyle(
-                                    color: Colors.grey[700],
-                                    fontSize: 14,
+                                  '${widget.route.totalDuration} → ',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                  ),
+                                ),
+                                Text(
+                                  widget.route.arrivalTime,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
                                   ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 8),
-
-                            // Walk info
-                            if (widget.route.segments.isNotEmpty)
-                              Text(
-                                widget.route.segments.first.description,
-                                style: TextStyle(
-                                  color: Colors.grey[700],
-                                  fontSize: 14,
-                                ),
+                            Text(
+                              '${widget.route.origin} → ${widget.route.destination}',
+                              style: TextStyle(
+                                color: Colors.grey[700],
+                                fontSize: 14,
                               ),
-                            const SizedBox(height: 12),
-
-                            // Transfers and Price
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                ElevatedButton(
-                                  onPressed: () {},
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                          '${widget.route.segments.length - 1} ${widget.route.segments.length - 1 == 1 ? 'Transfer' : 'Transfers'}'),
-                                      const SizedBox(width: 4),
-                                    ],
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFC32E31),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                    textStyle: const TextStyle(fontSize: 14),
-                                  ),
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      'GHS ${widget.route.totalFare.toStringAsFixed(2)}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Map section
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: SizedBox(
-                                height: 200,
-                                width: double.infinity,
-                                child: GoogleMap(
-                                  onMapCreated: (controller) {
-                                    _mapController = controller;
-                                    if (_markers.isNotEmpty) {
-                                      final bounds = LatLngBounds(
-                                        southwest: _markers
-                                            .map((m) => m.position)
-                                            .reduce((a, b) => LatLng(
-                                                a.latitude < b.latitude
-                                                    ? a.latitude
-                                                    : b.latitude,
-                                                a.longitude < b.longitude
-                                                    ? a.longitude
-                                                    : b.longitude)),
-                                        northeast: _markers
-                                            .map((m) => m.position)
-                                            .reduce((a, b) => LatLng(
-                                                a.latitude > b.latitude
-                                                    ? a.latitude
-                                                    : b.latitude,
-                                                a.longitude > b.longitude
-                                                    ? a.longitude
-                                                    : b.longitude)),
-                                      );
-
-                                      Future.delayed(
-                                          const Duration(milliseconds: 100),
-                                          () {
-                                        controller.animateCamera(
-                                            CameraUpdate.newLatLngBounds(
-                                                bounds, 50));
-                                      });
-                                    }
-                                  },
-                                  initialCameraPosition: CameraPosition(
-                                    target: _markers.isNotEmpty
-                                        ? _markers.first.position
-                                        : const LatLng(5.6037, -0.1870),
-                                    zoom: 13,
-                                  ),
-                                  polylines: _polylines,
-                                  markers: _markers,
-                                  myLocationButtonEnabled: false,
-                                  zoomControlsEnabled: false,
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(height: 16),
-
-                            // Trip steps
-                            ...widget.route.segments
-                                .asMap()
-                                .entries
-                                .map((entry) {
-                              final index = entry.key;
-                              final segment = entry.value;
-
-                              final isWalk = segment.type == 'walk';
-                              final time = segment.departureTime ??
-                                  (index == 0
-                                      ? widget.route.departureTime
-                                      : '');
-                              final durationMin =
-                                  (segment.duration / 60).ceil();
-                              final icon = isWalk
-                                  ? Icons.directions_walk
-                                  : Icons.directions_bus;
-                              final iconColor =
-                                  isWalk ? Colors.green : Colors.orange;
-
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 12.0),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    SizedBox(
-                                      width: 60,
-                                      child: Text(time,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.w500)),
-                                    ),
-                                    Container(
-                                      margin: const EdgeInsets.only(right: 12),
-                                      child: CircleAvatar(
-                                        radius: 14,
-                                        backgroundColor: Colors.grey[200],
-                                        child: Icon(icon,
-                                            size: 16, color: iconColor),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(segment.description,
-                                              style: const TextStyle(
-                                                  fontWeight: FontWeight.w600)),
-                                          Text(
-                                            isWalk
-                                                ? 'Walk for $durationMin min'
-                                                : 'Ride for $durationMin min',
-                                            style: const TextStyle(
-                                                color: Colors.grey),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-
-                            // Final destination
-                            TripStep(
-                              time: widget.route.arrivalTime,
-                              location:
-                                  widget.route.destination ?? 'Destination',
-                              instruction: '',
-                              icon: Icons.location_on,
-                              transportType: 'walk',
                             ),
                           ],
+                        ),
+                      ),
+
+                      const Divider(height: 24),
+
+                      // Price section
+                      Center(
+                        child: Column(
+                          children: [
+                            Text(
+                              'GHS ${widget.route.totalFare.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 24,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'One-way',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const Divider(height: 24),
+
+                      // Trip steps with checkboxes
+                      Column(
+                        children: [
+                          // Departure point
+                          _buildStepItem(
+                            time: widget.route.departureTime,
+                            location: widget.route.origin ?? 'Departure',
+                            instruction: '',
+                            isWalk: false,
+                            isFirst: true,
+                          ),
+
+                          // All segments
+                          ...widget.route.segments.map((segment) {
+                            final isWalk = segment.type == 'walk';
+                            final durationMin = (segment.duration / 60).ceil();
+                            return _buildStepItem(
+                              time: segment.departureTime ?? '',
+                              location: segment.description,
+                              instruction: isWalk
+                                  ? 'Walk for $durationMin min'
+                                  : 'Ride for $durationMin min',
+                              isWalk: isWalk,
+                            );
+                          }).toList(),
+
+                          // Arrival point
+                          _buildStepItem(
+                            time: widget.route.arrivalTime,
+                            location: widget.route.destination ?? 'Destination',
+                            instruction: '',
+                            isWalk: false,
+                            isLast: true,
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Map section
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: SizedBox(
+                          height: 200,
+                          width: double.infinity,
+                          child: GoogleMap(
+                            onMapCreated: _onMapCreated,
+                            initialCameraPosition: CameraPosition(
+                              target: const LatLng(5.6380, -0.1730),
+                              zoom: 15,
+                            ),
+                            polylines: _polylines,
+                            markers: _markers,
+                            myLocationButtonEnabled: false,
+                            zoomControlsEnabled: false,
+                            scrollGesturesEnabled: true,
+                            zoomGesturesEnabled: true,
+                            tiltGesturesEnabled: true,
+                            rotateGesturesEnabled: true,
+                            gestureRecognizers:
+                                <Factory<OneSequenceGestureRecognizer>>{
+                              Factory<OneSequenceGestureRecognizer>(
+                                () => EagerGestureRecognizer(),
+                              ),
+                            }.toSet(),
+                          ),
                         ),
                       ),
                     ],
@@ -704,6 +679,103 @@ void _setDefaultMapView(GoogleMapController controller) {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+// Helper widget for building each step item with checkbox
+  Widget _buildStepItem({
+    required String time,
+    required String location,
+    required String instruction,
+    required bool isWalk,
+    bool isFirst = false,
+    bool isLast = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Time column
+          SizedBox(
+            width: 70,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4.0),
+              child: Text(
+                time,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+
+          // Vertical line and checkbox
+          Column(
+            children: [
+              // Top line (only if not first item)
+              if (!isFirst)
+                Container(
+                  width: 1,
+                  height: 12,
+                  color: Colors.grey[400],
+                ),
+
+              // Checkbox
+              Container(
+                width: 24,
+                height: 24,
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.grey[400]!,
+                    width: 1.5,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.check,
+                  size: 16,
+                  color: Colors.green,
+                ),
+              ),
+
+              // Bottom line (only if not last item)
+              if (!isLast)
+                Container(
+                  width: 1,
+                  height: 12,
+                  color: Colors.grey[400],
+                ),
+            ],
+          ),
+
+          // Location and instruction
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  location,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+                if (instruction.isNotEmpty)
+                  Text(
+                    instruction,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 13,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
