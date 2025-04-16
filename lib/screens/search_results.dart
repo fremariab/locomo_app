@@ -25,7 +25,7 @@ class RouteCard extends StatelessWidget {
   final Function(String origin, String destination, double fare)? onSaveRoute;
   final CompositeRoute? routeData;
 
-  const RouteCard({
+  RouteCard({
     Key? key,
     this.label,
     this.labelColor,
@@ -40,7 +40,42 @@ class RouteCard extends StatelessWidget {
     this.onSaveRoute,
     this.routeData,
   }) : super(key: key);
+  String _formatTimeWithAMPM(String timeString) {
+    // If already formatted or empty, return as is
+    if (timeString.isEmpty ||
+        timeString.contains('AM') ||
+        timeString.contains('PM') ||
+        timeString == 'Now' ||
+        timeString == 'Later') {
+      return timeString;
+    }
 
+    try {
+      // Assuming time format is HH:MM (24-hour)
+      final parts = timeString.split(':');
+      if (parts.length != 2)
+        return timeString; // Return original if not in expected format
+
+      int hour = int.parse(parts[0]);
+      final minutes = parts[1];
+      final isAM = hour < 12;
+
+      // Convert to 12-hour format
+      if (hour == 0) {
+        hour = 12; // 00:00 becomes 12:00 AM
+      } else if (hour > 12) {
+        hour -= 12; // e.g., 13:00 becomes 1:00 PM
+      }
+
+      return '$hour:$minutes ${isAM ? 'AM' : 'PM'}';
+    } catch (e) {
+      // If parsing fails, return the original string
+      return timeString;
+    }
+  }
+
+  String get formattedDepartureTime => _formatTimeWithAMPM(departureTime);
+  String get formattedArrivalTime => _formatTimeWithAMPM(arrivalTime);
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -74,27 +109,28 @@ class RouteCard extends StatelessWidget {
           children: [
             // Label and star
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                if (label != null && label!.isNotEmpty)
-                  Text(
-                    label!,
+                Expanded(
+                  child: Text(
+                    label ?? '', // even if null, fallback to empty string
                     style: TextStyle(
                       color: labelColor ?? Colors.black,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
+                ),
                 GestureDetector(
                   onTap: () {
-                    // Call the onSaveRoute callback if provided
                     if (onSaveRoute != null) {
-                      // Extract fare from price string (remove 'GHS ' prefix)
-                      final fare = double.tryParse(price.replaceAll('GHS ', '')) ?? 0.0;
-                      onSaveRoute!(route.split(' → ')[0], route.split(' → ')[1], fare);
+                      final fare =
+                          double.tryParse(price.replaceAll('GHS ', '')) ?? 0.0;
+                      onSaveRoute!(
+                          route.split(' → ')[0], route.split(' → ')[1], fare);
                     }
                   },
-                  child: const Icon(Icons.star_border, color: Colors.black54, size: 24),
+                  child: const Icon(Icons.star_border,
+                      color: Colors.black54, size: 24),
                 ),
               ],
             ),
@@ -102,23 +138,25 @@ class RouteCard extends StatelessWidget {
             const SizedBox(height: 12),
 
             // Times
+            // Times row - add Flexible widgets
             Row(
               children: [
-                Text(departureTime,
+                Text(formattedDepartureTime,
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(width: 8),
-                Text("• $duration •",
-                    style:
-                        const TextStyle(fontSize: 12, color: Color(0xff656565))),
+                Flexible(
+                  child: Text("• $duration •",
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 12, color: Color(0xff656565))),
+                ),
                 const SizedBox(width: 8),
-                Text(arrivalTime,
+                Text(formattedArrivalTime,
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 16)),
-                const Spacer(),
               ],
             ),
-
             const SizedBox(height: 12),
 
             // Route
@@ -127,89 +165,77 @@ class RouteCard extends StatelessWidget {
                 const Icon(Icons.directions_bus_outlined,
                     size: 16, color: Colors.black54),
                 const SizedBox(width: 8),
-                Text(route, style: const TextStyle(fontSize: 12)),
+                Expanded(
+                  child: Text(
+                    route,
+                    style: const TextStyle(fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
 
-            const SizedBox(height: 6),
-
-            // Route details
+// Route details
             Row(
               children: [
                 const Icon(Icons.directions_walk,
                     size: 16, color: Colors.black54),
                 const SizedBox(width: 8),
-                Text(routeDetails, style: const TextStyle(fontSize: 12)),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // Bottom Row: Transfers + Price + Share
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Transfers
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: transferColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        '$transferCount ${transferCount == 1 ? 'Transfer' : 'Transfers'}',
-                        style: TextStyle(
-                            color: transferColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500),
-                      ),
-                      const Icon(Icons.keyboard_arrow_down,
-                          size: 16, color: Colors.black54),
-                    ],
+                Expanded(
+                  child: Text(
+                    routeDetails,
+                    style: const TextStyle(fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 12),
 
-                // Price + Share
-                Row(
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+            // Bottom Section: Transfers + Price + Share (wrapped safely)
+            // Bottom Section
+            Row(
+              children: [
+                Flexible(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: transferColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(price,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16)),
-                        const Text('One-way',
+                        Flexible(
+                          child: Text(
+                            '$transferCount ${transferCount == 1 ? 'Transfer' : 'Transfers'}',
                             style: TextStyle(
-                                fontSize: 12, color: Color(0xff656565))),
+                                color: transferColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(width: 12),
-                    GestureDetector(
-                      onTap: () async {
-                        // Ask user to pick a contact from their list
-                        final phone = await pickContactFromList(context);
-
-                        if (phone != null) {
-                          // Build SMS content with full route information
-                          final msg = "Trotro Route Info:\n"
-                              "Route: $route\n"
-                              "Details: $routeDetails\n"
-                              "Fare: $price\n"
-                              "Departure: $departureTime\n"
-                              "Arrival: $arrivalTime\n"
-                              "Duration: $duration";
-
-                          // Launch SMS app with prefilled message
-                          await _shareRouteViaSMS(msg, phone);
-                        }
-                      },
-                      child:
-                          const Icon(Icons.share_rounded, color: Colors.black54),
-                    ),
+                  ),
+                ),
+                const Spacer(),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(price,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
                   ],
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () async {
+                    // Share logic
+                  },
+                  child: const Icon(Icons.share_rounded, color: Colors.black54),
                 ),
               ],
             ),
@@ -321,11 +347,14 @@ class TravelResultsPage extends StatefulWidget {
   final String? destination;
   final Function(String origin, String destination, double fare)? onSaveRoute;
 
+  final dynamic initialSortBy;
+
   const TravelResultsPage({
-    Key? key, 
+    Key? key,
     required this.results,
     this.origin,
     this.destination,
+    required this.initialSortBy,
     this.onSaveRoute,
   }) : super(key: key);
 
@@ -334,12 +363,19 @@ class TravelResultsPage extends StatefulWidget {
 }
 
 class _TravelResultsPageState extends State<TravelResultsPage> {
-  String _sortBy = 'recommended'; // Default sort
-  
+  late String _sortBy;
+
+  @override
+  void initState() {
+    super.initState();
+    _sortBy = widget.initialSortBy;
+  }
+  // Default sort
+
   // Sort the results based on the selected criteria
   List<CompositeRoute> get sortedResults {
     final results = List<CompositeRoute>.from(widget.results);
-    
+
     switch (_sortBy) {
       case 'lowest_fare':
         results.sort((a, b) => a.totalFare.compareTo(b.totalFare));
@@ -355,7 +391,7 @@ class _TravelResultsPageState extends State<TravelResultsPage> {
         // Keep original order for recommended
         break;
     }
-    
+
     return results;
   }
 
@@ -445,7 +481,8 @@ class _TravelResultsPageState extends State<TravelResultsPage> {
                       onPressed: () => Navigator.of(context).pop(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFC32E31),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -466,40 +503,59 @@ class _TravelResultsPageState extends State<TravelResultsPage> {
                 itemCount: sortedResults.length,
                 itemBuilder: (context, index) {
                   final route = sortedResults[index];
-                  
+
                   // Safely get the first and last segments
-                  final firstSegment = route.segments.isNotEmpty ? route.segments.first : null;
-                  final lastSegment = route.segments.length > 1 ? route.segments.last : firstSegment;
-                  
+                  final firstSegment =
+                      route.segments.isNotEmpty ? route.segments.first : null;
+                  final lastSegment = route.segments.length > 1
+                      ? route.segments.last
+                      : firstSegment;
+
                   // Calculate duration text
-                  final duration = '${route.totalDuration} min';
+                  final duration = '${(route.totalDuration / 60).round()} min';
 
                   // Build route details text
-                  String routeDetails = firstSegment?.description ?? 'Unknown route';
+                  String routeDetails =
+                      firstSegment?.description ?? 'Unknown route';
                   if (lastSegment != null && lastSegment != firstSegment) {
                     routeDetails += ' → ${lastSegment.description}';
                   }
 
                   // Build the route display text with null safety
-                  final routeText = '${route.origin ?? 'Unknown'} → ${route.destination ?? 'Unknown'}';
-                  
+                  final routeText =
+                      '${route.origin ?? 'Unknown'} → ${route.destination ?? 'Unknown'}';
+
                   // Ensure departure and arrival times are not null
-                  final departureTime = route.departureTime.isNotEmpty ? route.departureTime : 'Now';
-                  final arrivalTime = route.arrivalTime.isNotEmpty ? route.arrivalTime : 'Later';
+                  final departureTime = route.departureTime.isNotEmpty
+                      ? route.departureTime
+                      : 'Now';
+                  final arrivalTime = route.arrivalTime.isNotEmpty
+                      ? route.arrivalTime
+                      : 'Later';
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12.0),
                     child: RouteCard(
-                      label: index == 0 ? 'Recommended' : null,
-                      labelColor: index == 0 ? Colors.green[700] : null,
+                      label: route.totalFare == 0
+                          ? '🚶‍♂️ Walking Only'
+                          : index == 0
+                              ? 'Recommended'
+                              : null,
+                      labelColor: route.totalFare == 0
+                          ? Colors.orange
+                          : index == 0
+                              ? Colors.green[700]
+                              : null,
                       departureTime: departureTime,
                       arrivalTime: arrivalTime,
                       duration: duration,
                       route: routeText,
                       routeDetails: routeDetails,
                       transferCount: route.segments.length - 1,
-                      price: 'GHS ${route.totalFare.toStringAsFixed(2)}',
-                      transferColor: Colors.red,
+                      price: route.totalFare == 0
+                          ? 'Free'
+                          : 'GHS ${route.totalFare.toStringAsFixed(2)}',
+                      transferColor: Color(0xffc32e21),
                       onSaveRoute: widget.onSaveRoute,
                       routeData: route,
                     ),
