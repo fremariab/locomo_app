@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math' show pi, sin, cos, sqrt, atan2;
 import 'package:flutter/foundation.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:locomo_app/models/station_model.dart';
@@ -59,24 +60,74 @@ class RouteService {
   }
 
   /// Fetch graph from Firestore (station_id → List of connected station_ids)
-  static Future<Map<String, List<String>>> buildGraph() async {
-    final Map<String, List<String>> graph = {};
-    final snapshot =
-        await FirebaseFirestore.instance.collection('stations').get();
-    for (var doc in snapshot.docs) {
-      final data = doc.data();
-      final id = data['id'] ?? doc.id;
-      final connections = (data['connections'] ?? []) as List<dynamic>;
-      graph[id] = connections.map((c) => c['stationId'] as String).toList();
-    }
-    debugPrint('🗺️ Full graph structure:');
-    graph.forEach((station, connections) {
-      debugPrint('  $station → ${connections.join(", ")}');
-    });
-    return graph;
+  /// Fetch graph from Firestore (including both stations and stops)
+static Future<Map<String, List<String>>> buildGraph() async {
+  final graph = <String, List<String>>{};
+
+  // 1) Load all stops
+  final stopSnapshot = await FirebaseFirestore.instance.collection('stops').get();
+  for (var doc in stopSnapshot.docs) {
+    final data = doc.data();
+    final stopId = data['id'] ?? doc.id;
+    final nearbyStation = data['nearbyStationId'] as String?;
+    graph[stopId] = nearbyStation != null ? [nearbyStation] : [];
   }
 
-  /// Breadth-first search to find shortest path in graph
+  // 2) Load all stations
+  final stationSnapshot =
+      await FirebaseFirestore.instance.collection(_routesCollection).get();
+  for (var doc in stationSnapshot.docs) {
+    final data = doc.data();
+    final stationId = data['id'] ?? doc.id;
+
+    // Existing station→station connections
+    final connections = (data['connections'] ?? <dynamic>[])
+        .map((c) => c['stationId'] as String)
+        .toList();
+
+    // ALSO link station → its stops
+    final stationStops = stopSnapshot.docs
+        .where((s) => s.data()['nearbyStationId'] == stationId)
+        .map((s) => s.data()['id'] ?? s.id)
+        .toList();
+
+    graph[stationId] = [...connections, ...stationStops];
+  }
+
+  debugPrint('🗺️ Full graph (stations+stops):');
+  graph.forEach((node, neighbors) {
+    debugPrint('  $node → ${neighbors.join(", ")}');
+  });
+
+  return graph;
+}
+
+/// Fetch either a station _or_ a stop by its ID
+static Future<TrotroStation> getNodeById(String id) async {
+  // Try station first
+  final stationDoc = await FirebaseFirestore.instance
+      .collection('stations')
+      .doc(id)
+      .get();
+  if (stationDoc.exists) {
+    return TrotroStation.fromFirestore(stationDoc);
+  }
+  // Fallback to stop model (you might need a Stop model class)
+  final stopDoc = await FirebaseFirestore.instance
+      .collection('stops')
+      .doc(id)
+      .get();
+  if (stopDoc.exists) {
+    final data = stopDoc.data()!;
+    return TrotroStation.temporary(  // reuse your station model, or create a Stop model
+      name: data['name'] ?? 'Stop',
+      latitude: data['coordinates']['lat'],
+      longitude: data['coordinates']['lng'],
+    );
+  }
+  return TrotroStation.notFound(id);
+}
+/// Breadth-first search to find shortest path in graph
   static List<String>? bfsPath(
       Map<String, List<String>> graph, String start, String goal) {
     final queue = <List<String>>[];
@@ -110,10 +161,53 @@ class RouteService {
     if (data == null) return 0;
     return (data["${fromId}_$toId"] ?? 0).toDouble();
   }
+/// Fetch station by its Firestore doc ID
+static Future<TrotroStation> getStationById(String stationId) async {
+  final doc = await FirebaseFirestore.instance
+      .collection('stations')
+      .doc(stationId)
+      .get();
+  if (!doc.exists) {
+    return TrotroStation.notFound(stationId);
+  }
+  return TrotroStation.fromFirestore(doc);
+}
+
+static Future<int> _busLegDurationSeconds(LatLng from, LatLng to) async {
+  // Try transit first, then driving
+  for (final mode in ['transit', 'driving']) {
+    final url = Uri.parse(
+      'https://maps.googleapis.com/maps/api/directions/json'
+      '?origin=${from.latitude},${from.longitude}'
+      '&destination=${to.latitude},${to.longitude}'
+      '&mode=$mode'
+      '&key=$_googleMapsApiKey'
+    );
+    final resp = await http.get(url);
+    final data = jsonDecode(resp.body);
+    debugPrint('[$mode] status=${data['status']} for $from → $to');
+    if (data['routes']?.isNotEmpty == true) {
+      final secs = data['routes'][0]['legs'][0]['duration']['value'] as int;
+      debugPrint('→ Got $secs s via $mode for $from → $to');
+      return secs;
+    }
+  }
+
+  // Fallback to distance estimate
+  final distKm = haversineDistance(
+    lat1: from.latitude, lon1: from.longitude,
+    lat2: to.latitude,   lon2: to.longitude,
+  );
+  final fallback = estimateDuration(distanceInKm: distKm, type: 'bus');
+  debugPrint('Fallback estimate $fallback s for $from → $to');
+  return fallback;
+}
+
 
   /// Dart version of findRoute function (Geocode → BFS → Fare → Segments)
   static Future<List<CompositeRoute>> findRouteDartBased(
-      String originText, String destinationText,{String preference = 'none'}) async {
+      String originText, String destinationText,
+      {String preference = 'none'}) async {
     debugPrint(
         '🔍 Starting Dart route search from "$originText" to "$destinationText"...');
 
@@ -186,8 +280,12 @@ class RouteService {
         lat2: originNearest['lat'],
         lon2: originNearest['lng'],
       );
-      final walkDuration =
-          estimateDuration(distanceInKm: walkDistance, type: 'walk');
+      // final walkDuration =
+      //     estimateDuration(distanceInKm: walkDistance, type: 'walk');
+      final fromCoord = LatLng(originGeo['lat'], originGeo['lng']);
+final toCoord   = LatLng(originNearest['lat'], originNearest['lng']);
+     final walkDuration = await _busLegDurationSeconds(fromCoord, toCoord);
+
       segments.add(RouteSegment(
         description: 'Walk to ${originNearest['name']}',
         fare: 0,
@@ -195,22 +293,27 @@ class RouteService {
         type: 'walk',
       ));
 
+      // route_service.dart → findRouteDartBased(...)
       for (int i = 0; i < stationPath.length - 1; i++) {
         final from = stationPath[i];
         final to = stationPath[i + 1];
         final fare = await fetchFare(from, to);
         totalFare += fare;
 
-        final fromStation = await getStationDetails(from);
-        final toStation = await getStationDetails(to);
+        final fromStation = await getNodeById(from);
+        final toStation = await getNodeById(to);
         final distance = haversineDistance(
           lat1: fromStation.latitude,
           lon1: fromStation.longitude,
           lat2: toStation.latitude,
           lon2: toStation.longitude,
         );
-        final duration = estimateDuration(distanceInKm: distance, type: 'bus');
 
+        // **This is where you currently estimate duration, hence the 0 s result**
+        // final duration = estimateDuration(distanceInKm: distance, type: 'bus');
+        final fromCoord = LatLng(fromStation.latitude, fromStation.longitude);
+        final toCoord = LatLng(toStation.latitude, toStation.longitude);
+        final duration = await _busLegDurationSeconds(fromCoord, toCoord);
         segments.add(RouteSegment(
           description: 'Ride from $from to $to',
           fare: fare,

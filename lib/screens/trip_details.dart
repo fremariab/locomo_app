@@ -154,7 +154,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
 
 
  Future<String?> _getEncodedPolylineFromDescription(String description) async {
-  final stationCoords = await fetchStationCoordinates();
+  final stationCoords = await fetchAllNodeCoordinates();
 
   // Skip anything that doesn't follow the expected format
   if (!description.contains(' to ')) {
@@ -474,6 +474,27 @@ LatLng? lastKnownEnd;
       rethrow;
     }
   }
+  Future<Map<String, LatLng>> fetchAllNodeCoordinates() async {
+  final coords = <String, LatLng>{};
+  // stations
+  final stations = await FirebaseFirestore.instance.collection('stations').get();
+  for (var doc in stations.docs) {
+    final data = doc.data();
+    coords[data['id'] ?? doc.id] = LatLng(
+      data['coordinates']['lat'], data['coordinates']['lng']
+    );
+  }
+  // stops
+  final stops = await FirebaseFirestore.instance.collection('stops').get();
+  for (var doc in stops.docs) {
+    final data = doc.data();
+    coords[data['id'] ?? doc.id] = LatLng(
+      data['coordinates']['lat'], data['coordinates']['lng']
+    );
+  }
+  return coords;
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -591,13 +612,7 @@ LatLng? lastKnownEnd;
                               ),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              'One-way',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                            ),
+                            
                           ],
                         ),
                       ),
