@@ -49,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (user != null) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => const TravelHomePage(
+            builder: (context) =>  TravelHomePage(
               initialOrigin: null,
               initialDestination: null,
             ),
