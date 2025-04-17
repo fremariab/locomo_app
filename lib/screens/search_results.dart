@@ -11,7 +11,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:locomo_app/models/route.dart';
 
-class RouteCard extends StatelessWidget {
+class RouteCard extends StatefulWidget {
   final String? label;
   final Color? labelColor;
   final String departureTime;
@@ -25,7 +25,7 @@ class RouteCard extends StatelessWidget {
   final Function(String origin, String destination, double fare)? onSaveRoute;
   final CompositeRoute? routeData;
 
-  RouteCard({
+  const RouteCard({
     Key? key,
     this.label,
     this.labelColor,
@@ -40,8 +40,27 @@ class RouteCard extends StatelessWidget {
     this.onSaveRoute,
     this.routeData,
   }) : super(key: key);
+
+  @override
+  State<RouteCard> createState() => _RouteCardState();
+}
+
+class _RouteCardState extends State<RouteCard> {
+  bool _isSaved = false;
+
+  void _handleSave() {
+    final fare = double.tryParse(widget.price.replaceAll('GHS ', '')) ?? 0.0;
+    widget.onSaveRoute?.call(
+      widget.route.split(' → ')[0],
+      widget.route.split(' → ')[1],
+      fare,
+    );
+    setState(() {
+      _isSaved = true;
+    });
+  }
+
   String _formatTimeWithAMPM(String timeString) {
-    // If already formatted or empty, return as is
     if (timeString.isEmpty ||
         timeString.contains('AM') ||
         timeString.contains('PM') ||
@@ -51,41 +70,39 @@ class RouteCard extends StatelessWidget {
     }
 
     try {
-      // Assuming time format is HH:MM (24-hour)
       final parts = timeString.split(':');
-      if (parts.length != 2)
-        return timeString; // Return original if not in expected format
+      if (parts.length != 2) return timeString;
 
       int hour = int.parse(parts[0]);
       final minutes = parts[1];
       final isAM = hour < 12;
 
-      // Convert to 12-hour format
       if (hour == 0) {
-        hour = 12; // 00:00 becomes 12:00 AM
+        hour = 12;
       } else if (hour > 12) {
-        hour -= 12; // e.g., 13:00 becomes 1:00 PM
+        hour -= 12;
       }
 
       return '$hour:$minutes ${isAM ? 'AM' : 'PM'}';
-    } catch (e) {
-      // If parsing fails, return the original string
+    } catch (_) {
       return timeString;
     }
   }
 
-  String get formattedDepartureTime => _formatTimeWithAMPM(departureTime);
-  String get formattedArrivalTime => _formatTimeWithAMPM(arrivalTime);
+  String get formattedDepartureTime =>
+      _formatTimeWithAMPM(widget.departureTime);
+
+  String get formattedArrivalTime => _formatTimeWithAMPM(widget.arrivalTime);
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        if (routeData != null) {
+        if (widget.routeData != null) {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => TripDetailsScreen(
-                route: routeData!,
+                route: widget.routeData!,
               ),
             ),
           );
@@ -112,25 +129,22 @@ class RouteCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    label ?? '', // even if null, fallback to empty string
+                    widget.label ??
+                        '', // even if null, fallback to empty string
                     style: TextStyle(
-                      color: labelColor ?? Colors.black,
+                      color: widget.labelColor ?? Colors.black,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
                 GestureDetector(
-                  onTap: () {
-                    if (onSaveRoute != null) {
-                      final fare =
-                          double.tryParse(price.replaceAll('GHS ', '')) ?? 0.0;
-                      onSaveRoute!(
-                          route.split(' → ')[0], route.split(' → ')[1], fare);
-                    }
-                  },
-                  child: const Icon(Icons.star_border,
-                      color: Colors.black54, size: 24),
+                  onTap: _handleSave,
+                  child: Icon(
+                    _isSaved ? Icons.star : Icons.star_border,
+                    color: _isSaved ? Colors.amber : Colors.black54,
+                    size: 24,
+                  ),
                 ),
               ],
             ),
@@ -146,10 +160,14 @@ class RouteCard extends StatelessWidget {
                         fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(width: 8),
                 Flexible(
-                  child: Text("• $duration •",
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 12, color: Color(0xff656565))),
+                  child: Text(
+                    "• ${widget.duration} •",
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xff656565),
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(formattedArrivalTime,
@@ -167,7 +185,7 @@ class RouteCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    route,
+                    widget.route,
                     style: const TextStyle(fontSize: 12),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -183,7 +201,7 @@ class RouteCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    routeDetails,
+                    widget.routeDetails,
                     style: const TextStyle(fontSize: 12),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -201,7 +219,7 @@ class RouteCard extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: transferColor.withOpacity(0.1),
+                      color: widget.transferColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -209,12 +227,14 @@ class RouteCard extends StatelessWidget {
                       children: [
                         Flexible(
                           child: Text(
-                            '$transferCount ${transferCount == 1 ? 'Transfer' : 'Transfers'}',
+                            '${widget.transferCount} ${widget.transferCount == 1 ? 'Transfer' : 'Transfers'}',
                             style: TextStyle(
-                                color: transferColor,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500),
+                              color: widget.transferColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
                             overflow: TextOverflow.ellipsis,
+                            maxLines: 1, // optional for extra safety
                           ),
                         ),
                       ],
@@ -225,7 +245,7 @@ class RouteCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(price,
+                    Text(widget.price,
                         style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 16)),
                   ],
@@ -233,7 +253,27 @@ class RouteCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () async {
-                    // Share logic
+                    // 1️⃣ Ask user to pick a contact
+                    final phone = await pickContactFromList(context);
+                    if (phone == null || widget.routeData == null) return;
+
+                    // 2️⃣ Build a simple SMS body
+                    final totalFare =
+                        widget.routeData!.totalFare.toStringAsFixed(2);
+                    final origin = widget.routeData!.origin;
+                    final destination = widget.routeData!.destination;
+                    final steps = widget.routeData!.segments
+                        .map((s) => "${s.description} (${s.fare} GHS)")
+                        .join("\n");
+                    final message = '''
+Route from $origin → $destination
+$steps
+
+Total fare: $totalFare GHS
+''';
+
+                    // 3️⃣ Launch SMS
+                    await _shareRouteViaSMS(message, phone);
                   },
                   child: const Icon(Icons.share_rounded, color: Colors.black54),
                 ),
@@ -246,98 +286,111 @@ class RouteCard extends StatelessWidget {
   }
 
   Future<String?> pickContactFromList(BuildContext context) async {
-    // Ensure contact permission is granted before proceeding
-    final status = await Permission.contacts.status;
-    if (!status.isGranted) {
-      final result = await Permission.contacts.request();
-      if (!result.isGranted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Contact permission denied")),
-        );
-        return null;
-      }
+  // 1️⃣ Ask for permission
+  final granted = await FlutterContacts.requestPermission();
+  if (!granted) {
+    // Show a dialog explaining why we need it, with a “Go to Settings” button
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Contacts Permission'),
+        content: const Text(
+          'We need access to your contacts in order to share routes. '
+          'Please enable Contacts permission in Settings.'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              openAppSettings();
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Open Settings'),
+          ),
+        ],
+      ),
+    );
+    return null;
+  }
+
+  // 2️⃣ Load all contacts with phone data
+  final contacts = await FlutterContacts.getContacts(withProperties: true);
+
+  // 3️⃣ Show a fixed-height bottom sheet
+  return showModalBottomSheet<String>(
+    context: context,
+    builder: (_) => SizedBox(
+      height: MediaQuery.of(context).size.height * 0.6,
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              "Select a contact to share route with",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: contacts.length,
+              itemBuilder: (context, i) {
+                final c = contacts[i];
+                final phone =
+                    c.phones.isNotEmpty ? c.phones.first.number : null;
+                return ListTile(
+                  title: Text(c.displayName),
+                  subtitle:
+                      phone != null ? Text(phone) : const Text("No number"),
+                  onTap: () => Navigator.pop(context, phone),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+  /// If you still want a full‑screen picker via FlutterContacts UI:
+  Future<String?> pickContactPhoneNumber(BuildContext context) async {
+    // Already requested permission above; you can skip here or repeat:
+    final granted = await FlutterContacts.requestPermission();
+    if (!granted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Contact permission denied")),
+      );
+      return null;
     }
 
-    // Load contacts with phone numbers included
-    final contacts = await FlutterContacts.getContacts(withProperties: true);
+    // Launch the platform’s native picker
+    final contact = await FlutterContacts.openExternalPick();
+    if (contact != null && contact.phones.isNotEmpty) {
+      return contact.phones.first.number;
+    }
 
-    // Show contacts in a scrollable bottom sheet for selection
-    return showModalBottomSheet<String>(
-      context: context,
-      builder: (context) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text("Select a contact to share route with",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: contacts.length,
-                itemBuilder: (context, index) {
-                  final contact = contacts[index];
-                  final phone = contact.phones.isNotEmpty
-                      ? contact.phones.first.number
-                      : null;
-
-                  return ListTile(
-                    title: Text(contact.displayName),
-                    subtitle:
-                        phone != null ? Text(phone) : const Text("No number"),
-                    onTap: () {
-                      Navigator.pop(context, phone);
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-Future<String?> pickContactPhoneNumber(BuildContext context) async {
-  final status = await Permission.contacts.request();
-
-  if (status != PermissionStatus.granted) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Contact permission denied')),
+      const SnackBar(content: Text("No phone number found")),
     );
     return null;
   }
 
-  if (!await FlutterContacts.requestPermission()) {
-    return null;
-  }
-
-  final contact = await FlutterContacts.openExternalPick();
-  if (contact != null && contact.phones.isNotEmpty) {
-    return contact.phones.first.number;
-  }
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text("No phone number found")),
-  );
-  return null;
-}
-
-Future<void> _shareRouteViaSMS(String message, String phoneNumber) async {
-  // Construct SMS URI with prefilled body
-  final Uri smsUri = Uri(
-    scheme: 'sms',
-    path: phoneNumber,
-    queryParameters: {'body': message},
-  );
-
-  // Open the device's SMS app
-  if (await canLaunchUrl(smsUri)) {
-    await launchUrl(smsUri);
-  } else {
-    throw 'Could not launch SMS';
+  /// Sends the SMS via the platform’s default messaging app
+  Future<void> _shareRouteViaSMS(String message, String phoneNumber) async {
+    final uri = Uri(
+      scheme: 'sms',
+      path: phoneNumber,
+      queryParameters: {'body': message},
+    );
+    if (!await canLaunchUrl(uri)) {
+      throw 'Could not launch SMS';
+    }
+    await launchUrl(uri);
   }
 }
 
@@ -421,6 +474,7 @@ class _TravelResultsPageState extends State<TravelResultsPage> {
           actions: [
             // Sort button
             PopupMenuButton<String>(
+              tooltip: "Sort By",
               icon: const Icon(Icons.sort, color: Colors.white),
               onSelected: (String value) {
                 setState(() {
@@ -512,7 +566,10 @@ class _TravelResultsPageState extends State<TravelResultsPage> {
                       : firstSegment;
 
                   // Calculate duration text
-                  final duration = '${(route.totalDuration / 60).round()} min';
+                  final hours = route.totalDuration ~/ 60;
+                  final minutes = route.totalDuration % 60;
+                  final duration =
+                      hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m';
 
                   // Build route details text
                   String routeDetails =

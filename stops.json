@@ -1,0 +1,692 @@
+[
+  {
+    "id": "abokobi",
+    "connections": [
+      {
+        "stopId": "abokobi_market"
+      },
+      {
+        "stopId": "atomic"
+      },
+      {
+        "stopId": "taifa_barrier"
+      },
+      {
+        "stopId": "st_johns_dome"
+      }
+    ]
+  },
+  {
+    "id": "abokobi_market",
+    "name": "Abokobi Market",
+    "coordinates": {
+      "lat": 5.7299,
+      "lng": -0.1893
+    },
+    "type": "stop",
+    "nearbyStationId": "madina_station",
+    "connections": [
+      {
+        "stopId": "abokobi"
+      },
+      {
+        "stopId": "atomic"
+      },
+      {
+        "stopId": "pokuase_junction"
+      }
+    ]
+  },
+  {
+    "id": "accra_mall_stop",
+    "name": "Accra Mall",
+    "type": "stop",
+    "nearbyStationId": "accra_mall_station",
+    "coordinates": {
+      "lat": 5.6221003,
+      "lng": -0.1733501
+    },
+    "connections": [
+      {
+        "stopId": "taifa_barrier"
+      },
+      {
+        "stopId": "pure_fire_kwabenya"
+      },
+      {
+        "stopId": "ashesi_university"
+      },
+      {
+        "stopId": "agbogba"
+      }
+    ]
+  },
+  {
+    "id": "agbogba",
+    "name": "Agbogba",
+    "type": "stop",
+    "nearbyStationId": "agbogba_station",
+    "coordinates": {
+      "lat": 5.6944159,
+      "lng": -0.2021951
+    },
+    "connections": [
+      {
+        "stopId": "atomic_roundabout"
+      },
+      {
+        "stopId": "goil_adenta"
+      },
+      {
+        "stopId": "east_legon_bawaleshie"
+      }
+    ]
+  },
+  {
+    "id": "ashesi_university_junction",
+    "type": "stop",
+    "nearbyStationId": "kitase_station",
+    "name": "Ashesi University Junction",
+    "coordinates": {
+      "lat": 5.7602752,
+      "lng": -0.2199232
+    },
+    "connections": [
+      {
+        "stopId": "berekuso"
+      },
+      {
+        "stopId": "kitase_junction"
+      },
+      {
+        "stopId": "agbogba"
+      },
+      {
+        "stopId": "goil_adenta"
+      }
+    ]
+  },
+  {
+    "id": "ashongman",
+    "connections": [
+      {
+        "stopId": "ashongman_estates"
+      },
+      {
+        "stopId": "kwabenya"
+      },
+      {
+        "stopId": "atomic"
+      }
+    ]
+  },
+  {
+    "id": "ashongman_estates",
+    "name": "Ashongman Estates",
+    "type": "stop",
+    "nearbyStationId": "ashongman_station",
+    "coordinates": {
+      "lat": 5.7062442,
+      "lng": -0.2361929
+    },
+    "connections": [
+      {
+        "stopId": "ashongman"
+      },
+      {
+        "stopId": "kwabenya"
+      },
+      {
+        "stopId": "pantang"
+      },
+      {
+        "stopId": "melcom_madina"
+      }
+    ]
+  },
+  {
+    "id": "asofan",
+    "name": "Asofan",
+    "type": "stop",
+    "nearbyStationId": "pokuase_station",
+    "coordinates": {
+      "lat": 5.6963295,
+      "lng": -0.2918233
+    },
+    "connections": [
+      {
+        "stopId": "pantang"
+      },
+      {
+        "stopId": "kwabenya"
+      },
+      {
+        "stopId": "atomic"
+      },
+      {
+        "stopId": "east_legon_bawaleshie"
+      }
+    ]
+  },
+  {
+    "id": "atomic",
+    "name": "Atomic",
+    "type": "stop",
+    "nearbyStationId": "madina_station",
+    "coordinates": {
+      "lat": 7.946527,
+      "lng": -1.023194
+    },
+    "connections": [
+      {
+        "stopId": "atomic_roundabout"
+      },
+      {
+        "stopId": "oyarifa_junction"
+      },
+      {
+        "stopId": "melcom_madina"
+      },
+      {
+        "stopId": "abokobi_market"
+      }
+    ]
+  },
+  {
+    "id": "atomic_down",
+    "name": "Atomic Down",
+    "type": "stop",
+    "nearbyStationId": "madina_station",
+    "coordinates": {
+      "lat": 5.6844885,
+      "lng": -0.2537813
+    },
+    "connections": [
+      {
+        "stopId": "atomic_roundabout"
+      },
+      {
+        "stopId": "kwabenya"
+      },
+      {
+        "stopId": "golf_park"
+      },
+      {
+        "stopId": "pantang"
+      }
+    ]
+  },
+  {
+    "id": "atomic_roundabout",
+    "name": "Atomic Roundabout",
+    "type": "stop",
+    "nearbyStationId": "madina_station",
+    "coordinates": {
+      "lat": 5.667036,
+      "lng": -0.1771481
+    },
+    "connections": [
+      {
+        "stopId": "atomic_down"
+      },
+      {
+        "stopId": "madina_zongo_junction"
+      },
+      {
+        "stopId": "agbogba"
+      }
+    ]
+  },
+  {
+    "id": "ayimensah_gate",
+    "name": "Ayi Mensah",
+    "type": "stop",
+    "nearbyStationId": "ayi_mensah_station",
+    "coordinates": {
+      "lat": 5.7821601,
+      "lng": -0.182158
+    },
+    "connections": [
+      {
+        "stopId": "ashesi_university"
+      },
+      {
+        "stopId": "taifa_barrier"
+      },
+      {
+        "stopId": "pure_fire_kwabenya"
+      },
+      {
+        "stopId": "taifa_barrier"
+      }
+    ]
+  },
+  {
+    "id": "berekuso",
+    "name": "Berekuso",
+    "type": "stop",
+    "nearbyStationId": "berekuso_station",
+    "coordinates": {
+      "lat": 5.759864900000001,
+      "lng": -0.2253516
+    },
+    "connections": [
+      {
+        "stopId": "berekuso_police_station"
+      },
+      {
+        "stopId": "ashesi_university"
+      }
+    ]
+  },
+  {
+    "id": "berekuso_police_station",
+    "name": "Berekuso Police Station",
+    "type": "stop",
+    "nearbyStationId": "berekuso_station",
+    "coordinates": {
+      "lat": 5.7621614,
+      "lng": -0.2239912
+    },
+    "connections": [
+      {
+        "stopId": "berekuso"
+      },
+      {
+        "stopId": "golf_park"
+      },
+      {
+        "stopId": "pure_fire_kwabenya"
+      }
+    ]
+  },
+  {
+    "id": "circle_overhead",
+    "name": "Circle Overhead",
+    "type": "stop",
+    "nearbyStationId": "kaneshie_station",
+    "coordinates": {
+      "lat": 5.5706719,
+      "lng": -0.2128545
+    },
+    "connections": [
+      {
+        "stopId": "pantang"
+      },
+      {
+        "stopId": "goil_adenta"
+      },
+      {
+        "stopId": "kwabenya"
+      },
+      {
+        "stopId": "pantang"
+      }
+    ]
+  },
+  {
+    "id": "east_legon_bawaleshie",
+    "name": "Bawaleshie",
+    "type": "stop",
+    "nearbyStationId": "east_legon_station",
+    "coordinates": {
+      "lat": 5.633332999999999,
+      "lng": -0.166667
+    },
+    "connections": [
+      {
+        "stopId": "ashesi_university"
+      },
+      {
+        "stopId": "pantang"
+      },
+      {
+        "stopId": "goil_adenta"
+      }
+    ]
+  },
+  {
+    "id": "goil_adenta",
+    "name": "Goil Adenta",
+    "type": "stop",
+    "nearbyStationId": "adenta_station",
+    "coordinates": {
+      "lat": 5.7141674,
+      "lng": -0.15418
+    },
+    "connections": [
+      {
+        "stopId": "pantang"
+      },
+      {
+        "stopId": "agbogba"
+      },
+      {
+        "stopId": "ashesi_university"
+      },
+      {
+        "stopId": "golf_park"
+      }
+    ]
+  },
+  {
+    "id": "golf_park",
+    "name": "Golf Park",
+    "type": "stop",
+    "nearbyStationId": "achimota_station",
+    "coordinates": {
+      "lat": 7.946527,
+      "lng": -1.023194
+    },
+    "connections": [
+      {
+        "stopId": "goil_adenta"
+      },
+      {
+        "stopId": "kwabenya"
+      },
+      {
+        "stopId": "pokuase_junction"
+      },
+      {
+        "stopId": "taifa_barrier"
+      }
+    ]
+  },
+  {
+    "id": "haatso_total",
+    "type": "stop",
+    "nearbyStationId": "haasto_station",
+    "name": "Haatso Total",
+    "coordinates": {
+      "lat": 5.6679349,
+      "lng": -0.2054972
+    },
+    "connections": [
+      {
+        "stopId": "goil_adenta"
+      },
+      {
+        "stopId": "melcom_madina"
+      },
+      {
+        "stopId": "atomic_roundabout"
+      },
+      {
+        "stopId": "taifa_barrier"
+      }
+    ]
+  },
+  {
+    "id": "kitase_junction",
+    "name": "Kitase Junction",
+    "type": "stop",
+    "nearbyStationId": "kitase_station",
+    "coordinates": {
+      "lat": 7.946527,
+      "lng": -1.023194
+    },
+    "connections": [
+      {
+        "stopId": "st_johns_dome"
+      },
+      {
+        "stopId": "golf_park"
+      },
+      {
+        "stopId": "atomic"
+      },
+      {
+        "stopId": "pantang"
+      }
+    ]
+  },
+  {
+    "id": "kwabenya",
+    "type": "stop",
+    "nearbyStationId": "kwabenya_station",
+    "coordinates": {
+      "lat": 5.6844172,
+      "lng": -0.2537157
+    },
+    "name": "Kwabenya Stop",
+    "connections": [
+      {
+        "stopId": "pure_fire_kwabenya"
+      },
+      {
+        "stopId": "ashongman_estates"
+      },
+      {
+        "stopId": "taifa_barrier"
+      }
+    ]
+  },
+  {
+    "id": "madina_zongo_junction",
+    "name": "Madina Zongo Junction",
+    "type": "stop",
+    "nearbyStationId": "madina_station",
+    "coordinates": {
+      "lat": 5.6779251,
+      "lng": -0.1733535
+    },
+    "connections": [
+      {
+        "stopId": "melcom_madina"
+      },
+      {
+        "stopId": "atomic_roundabout"
+      },
+      {
+        "stopId": "pantang"
+      }
+    ]
+  },
+  {
+    "id": "melcom_madina",
+    "name": "Melcom Madina",
+    "type": "stop",
+    "nearbyStationId": "madina_station",
+    "coordinates": {
+      "lat": 0.6757279,
+      "lng": -0.1704831
+    },
+    "connections": [
+      {
+        "stopId": "madina_zongo_junction"
+      },
+      {
+        "stopId": "pantang"
+      },
+      {
+        "stopId": "atomic"
+      }
+    ]
+  },
+  {
+    "id": "oyarifa",
+    "connections": [
+      {
+        "stopId": "oyarifa_junction"
+      },
+      {
+        "stopId": "pantang"
+      },
+      {
+        "stopId": "oyarifa_goil"
+      }
+    ]
+  },
+  {
+    "id": "oyarifa_goil",
+    "name": "Oyarifa Goil",
+    "type": "stop",
+    "nearbyStationId": "oyarifa_station",
+    "coordinates": {
+      "lat": 5.7556353,
+      "lng": -0.1738945
+    },
+    "connections": [
+      {
+        "stopId": "oyarifa"
+      },
+      {
+        "stopId": "melcom_madina"
+      },
+      {
+        "stopId": "pure_fire_kwabenya"
+      }
+    ]
+  },
+  {
+    "id": "oyarifa_junction",
+    "name": "Oyarifa Junction",
+    "type": "stop",
+    "nearbyStationId": "oyarifa_station",
+    "coordinates": {
+      "lat": 5.7485707,
+      "lng": -0.1771411
+    },
+    "connections": [
+      {
+        "stopId": "oyarifa"
+      },
+      {
+        "stopId": "pantang"
+      },
+      {
+        "stopId": "goil_adenta"
+      }
+    ]
+  },
+  {
+    "id": "paloma",
+    "name": "Paloma",
+    "type": "stop",
+    "nearbyStationId": "circle_station",
+    "coordinates": {
+      "lat": 7.946527,
+      "lng": -1.023194
+    },
+    "connections": [
+      {
+        "stopId": "ashongman_estates"
+      },
+      {
+        "stopId": "golf_park"
+      },
+      {
+        "stopId": "taifa_barrier"
+      },
+      {
+        "stopId": "atomic"
+      }
+    ]
+  },
+  {
+    "id": "pantang",
+    "name": "Pantang",
+    "type": "stop",
+    "nearbyStationId": "madina_station",
+    "coordinates": {
+      "lat": 5.7332654,
+      "lng": -0.1843777
+    },
+    "connections": [
+      {
+        "stopId": "oyarifa_junction"
+      },
+      {
+        "stopId": "oyarifa"
+      },
+      {
+        "stopId": "atomic"
+      }
+    ]
+  },
+  {
+    "id": "pokuase_junction",
+    "name": "Pokuase Junction",
+    "type": "stop",
+    "nearbyStationId": "pokuase_station",
+    "coordinates": {
+      "lat": 5.6890239,
+      "lng": -0.2818623
+    },
+    "connections": [
+      {
+        "stopId": "pure_fire_kwabenya"
+      },
+      {
+        "stopId": "kwabenya"
+      },
+      {
+        "stopId": "east_legon_bawaleshie"
+      }
+    ]
+  },
+  {
+    "id": "pure_fire_kwabenya",
+    "name": "Pure Fire Kwabenya",
+    "type": "stop",
+    "nearbyStationId": "kwabenya_station",
+    "coordinates": {
+      "lat": 5.6844172,
+      "lng": -0.2537157
+    },
+    "connections": [
+      {
+        "stopId": "kwabenya"
+      },
+      {
+        "stopId": "taifa_barrier"
+      },
+      {
+        "stopId": "atomic_roundabout"
+      }
+    ]
+  },
+  {
+    "id": "st_johns_dome",
+    "name": "St John's Dome",
+    "type": "stop",
+    "nearbyStationId": "dome_station",
+    "coordinates": {
+      "lat": 5.638979,
+      "lng": -0.2423215
+    },
+    "connections": [
+      {
+        "stopId": "melcom_madina"
+      },
+      {
+        "stopId": "east_legon_bawaleshie"
+      }
+    ]
+  },
+  {
+    "id": "taifa_barrier",
+    "name": "Taifa Barrier",
+    "type": "stop",
+    "nearbyStationId": "taifa_station",
+    "coordinates": {
+      "lat": 5.652502699999999,
+      "lng": -0.2506834
+    },
+    "connections": [
+      {
+        "stopId": "ashesi_university"
+      },
+      {
+        "stopId": "ashongman_estates"
+      },
+      {
+        "stopId": "taifa_barrier"
+      },
+      {
+        "stopId": "pantang"
+      }
+    ]
+  }
+]

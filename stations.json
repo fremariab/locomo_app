@@ -1,0 +1,791 @@
+[
+  {
+    "id": "accra_mall_station",
+    "name": "Accra Mall Station",
+    "region": "Greater Accra",
+    "type": "station",
+    "coordinates": {
+      "lat": 5.6221003,
+      "lng": -0.1733501
+    },
+    "connections": [
+      {
+        "stationId": "circle_station",
+        "fare": 2.45,
+        "direct": true
+      },
+      {
+        "stationId": "east_legon_station",
+        "fare": 2.13,
+        "direct": true
+      },
+      {
+        "stationId": "madina_station",
+        "fare": 1.38,
+        "direct": true
+      },
+      {
+        "stopId": "accra_mall_stop",
+        "direct": true,
+        "fare": 1.58
+      },
+      {
+        "stopId": "circle_overhead",
+        "direct": true,
+        "fare": 1.71
+      },
+      {
+        "stopId": "golf_park",
+        "direct": true,
+        "fare": 1.94
+      },
+      {
+        "stopId": "melcom_madina",
+        "direct": true,
+        "fare": 1.16
+      },
+      {
+        "stopId": "pantang",
+        "direct": true,
+        "fare": 1.17
+      },
+      {
+        "stopId": "oyarifa_goil",
+        "direct": true,
+        "fare": 1.1
+      }
+    ]
+  },
+  {
+    "id": "achimota_station",
+    "connections": [
+      {
+        "stationId": "kaneshie_station",
+        "fare": 1.36,
+        "direct": true
+      },
+      {
+        "stationId": "taifa_station",
+        "fare": 2.61,
+        "direct": true
+      }
+    ]
+  },
+  {
+    "id": "adenta_station",
+    "name": "Adenta Station",
+    "region": "Greater Accra",
+    "type": "station",
+    "coordinates": {
+      "lat": 5.7141674,
+      "lng": -0.15418
+    },
+    "connections": [
+      {
+        "stationId": "madina_station",
+        "fare": 2.16,
+        "direct": true
+      },
+      {
+        "stationId": "oyarifa_station",
+        "fare": 2.06,
+        "direct": true
+      },
+      {
+        "stationId": "agbogba_station",
+        "fare": 2.49,
+        "direct": true
+      },
+      {
+        "stopId": "goil_adenta",
+        "direct": true,
+        "fare": 1.62
+      },
+      {
+        "stopId": "east_legon_bawaleshie",
+        "direct": true,
+        "fare": 1.19
+      },
+      {
+        "stopId": "oyarifa_junction",
+        "direct": true,
+        "fare": 1.07
+      },
+      {
+        "stopId": "pokuase_junction",
+        "direct": true,
+        "fare": 1.76
+      },
+      {
+        "stopId": "ashesi_university",
+        "direct": true,
+        "fare": 1.2
+      },
+      {
+        "stopId": "madina_zongo_junction",
+        "direct": true,
+        "fare": 1.46
+      }
+    ]
+  },
+  {
+    "id": "agbogba_station",
+    "name": "Agbogba Station",
+    "region": "Greater Accra",
+    "type": "station",
+    "coordinates": {
+      "lat": 5.6681018,
+      "lng": -0.2056541
+    },
+    "connections": [
+      {
+        "stationId": "kwabenya_station",
+        "fare": 2.52,
+        "direct": true
+      },
+      {
+        "stationId": "ashongman_station",
+        "fare": 1.65,
+        "direct": true
+      },
+      {
+        "stationId": "adenta_station",
+        "fare": 1.94,
+        "direct": true
+      },
+      {
+        "stopId": "agbogba",
+        "direct": true,
+        "fare": 1.19
+      },
+      {
+        "stopId": "atomic_roundabout",
+        "direct": true,
+        "fare": 1.01
+      },
+      {
+        "stopId": "pantang",
+        "direct": true,
+        "fare": 1.13
+      },
+      {
+        "stopId": "kwabenya",
+        "direct": true,
+        "fare": 1.36
+      },
+      {
+        "stopId": "pure_fire_kwabenya",
+        "direct": true,
+        "fare": 2.02
+      },
+      {
+        "stopId": "melcom_madina",
+        "direct": true,
+        "fare": 1.42
+      }
+    ]
+  },
+  {
+    "id": "ashongman_station",
+    "name": "Ashongman Station",
+    "region": "Greater Accra",
+    "type": "station",
+    "coordinates": {
+      "lat": 5.7036655,
+      "lng": -0.2104877
+    },
+    "connections": [
+      {
+        "stationId": "agbogba_station",
+        "fare": 2.2,
+        "direct": true
+      },
+      {
+        "stationId": "taifa_station",
+        "fare": 2.16,
+        "direct": true
+      },
+      {
+        "stationId": "kitase_station",
+        "fare": 1.31,
+        "direct": true
+      },
+      {
+        "stopId": "ashongman_estates",
+        "direct": true,
+        "fare": 1.04
+      },
+      {
+        "stopId": "taifa_barrier",
+        "direct": true,
+        "fare": 1.12
+      },
+      {
+        "stopId": "atomic",
+        "direct": true,
+        "fare": 1.65
+      },
+      {
+        "stopId": "asofan",
+        "direct": true,
+        "fare": 2
+      },
+      {
+        "stopId": "madina_zongo_junction",
+        "direct": true,
+        "fare": 2
+      },
+      {
+        "stopId": "pokuase_junction",
+        "direct": true,
+        "fare": 1.9
+      }
+    ]
+  },
+  {
+    "id": "ayi_mensah_station",
+    "name": "Ayi Mensah Station",
+    "region": "Greater Accra",
+    "type": "station",
+    "coordinates": {
+      "lat": 5.7821601,
+      "lng": -0.182158
+    },
+    "connections": [
+      {
+        "stationId": "east_legon_station",
+        "fare": 2.5,
+        "direct": true
+      },
+      {
+        "stationId": "adenta_station",
+        "fare": 1.9,
+        "direct": true
+      },
+      {
+        "stationId": "madina_station",
+        "fare": 2,
+        "direct": true
+      },
+      {
+        "stopId": "ayi_mensah",
+        "direct": true
+      },
+      {
+        "stopId": "pantang",
+        "direct": true
+      },
+      {
+        "stopId": "ashesi_university",
+        "direct": true
+      },
+      {
+        "stopId": "taifa_barrier",
+        "direct": true
+      },
+      {
+        "stopId": "pure_fire_kwabenya",
+        "direct": true
+      },
+      {
+        "stopId": "goil_adenta",
+        "direct": true
+      }
+    ]
+  },
+  {
+    "id": "circle_station",
+    "connections": [
+      {
+        "stationId": "accra_mall_station",
+        "fare": 2.06,
+        "direct": true
+      },
+      {
+        "stationId": "kaneshie_station",
+        "fare": 1.52,
+        "direct": true
+      }
+    ]
+  },
+  {
+    "id": "east_legon_station",
+    "name": "East Legon Station",
+    "region": "Greater Accra",
+    "type": "station",
+    "coordinates": {
+      "lat": 5.6074563,
+      "lng": -0.2461388
+    },
+    "connections": [
+      {
+        "stationId": "madina_station",
+        "fare": 1.64,
+        "direct": true
+      },
+      {
+        "stationId": "accra_mall_station",
+        "fare": 2.48,
+        "direct": true
+      },
+      {
+        "stationId": "ayi_mensah_station",
+        "fare": 2.65,
+        "direct": true
+      },
+      {
+        "stopId": "east_legon_bawaleshie",
+        "direct": true,
+        "fare": 1.93
+      },
+      {
+        "stopId": "golf_park",
+        "direct": true,
+        "fare": 2.2
+      },
+      {
+        "stopId": "ashesi_university",
+        "direct": true,
+        "fare": 1
+      },
+      {
+        "stopId": "atomic_down",
+        "direct": true,
+        "fare": 2.48
+      },
+      {
+        "stopId": "oyarifa_goil",
+        "direct": true,
+        "fare": 1.57
+      },
+      {
+        "stopId": "madina_zongo_junction",
+        "direct": true,
+        "fare": 2.17
+      }
+    ]
+  },
+  {
+    "id": "haasto_station",
+    "region": "Greater Accra",
+    "type": "station",
+    "name": "Haatso Station",
+    "coordinates": {
+      "lat": 5.667329,
+      "lng": -0.2043557
+    },
+    "connections": [
+      {
+        "stationId": "madina_station",
+        "fare": 2.68,
+        "direct": true
+      },
+      {
+        "stationId": "kwabenya_station",
+        "fare": 1.45,
+        "direct": true
+      },
+      {
+        "stationId": "taifa_station",
+        "fare": 1.83,
+        "direct": true
+      },
+      {
+        "stopId": "haatso_total",
+        "direct": true,
+        "fare": 2.09
+      },
+      {
+        "stopId": "atomic",
+        "direct": true,
+        "fare": 1.88
+      },
+      {
+        "stopId": "atomic_roundabout",
+        "direct": true,
+        "fare": 2.39
+      },
+      {
+        "stopId": "kwabenya",
+        "direct": true,
+        "fare": 1.16
+      },
+      {
+        "stopId": "pure_fire_kwabenya",
+        "direct": true,
+        "fare": 2.44
+      },
+      {
+        "stopId": "goil_adenta",
+        "direct": true,
+        "fare": 1.72
+      }
+    ]
+  },
+  {
+    "id": "kaneshie_station",
+    "connections": [
+      {
+        "stationId": "circle_station",
+        "fare": 1.41,
+        "direct": true
+      },
+      {
+        "stationId": "achimota_station",
+        "fare": 1.99,
+        "direct": true
+      }
+    ]
+  },
+  {
+    "id": "kitase_station",
+    "name": "Kitase Station",
+    "region": "Eastern Region",
+    "type": "station",
+    "coordinates": {
+      "lat": 7.946527,
+      "lng": -1.023194
+    },
+    "connections": [
+      {
+        "stationId": "pokuase_station",
+        "fare": 1.33,
+        "direct": true
+      },
+      {
+        "stationId": "oyarifa_station",
+        "fare": 1.55,
+        "direct": true
+      },
+      {
+        "stationId": "ashongman_station",
+        "fare": 2.16,
+        "direct": true
+      },
+      {
+        "stopId": "kitase_junction",
+        "direct": true,
+        "fare": 1.37
+      },
+      {
+        "stopId": "berekuso",
+        "direct": true,
+        "fare": 1.54
+      },
+      {
+        "stopId": "berekuso_police_station",
+        "direct": true,
+        "fare": 1.3
+      },
+      {
+        "stopId": "pantang",
+        "direct": true,
+        "fare": 1.7
+      },
+      {
+        "stopId": "melcom_madina",
+        "direct": true,
+        "fare": 1.9
+      },
+      {
+        "stopId": "oyarifa_junction",
+        "direct": true,
+        "fare": 2.31
+      }
+    ]
+  },
+  {
+    "id": "kwabenya_station",
+    "name": "Kwabenya Station",
+    "region": "Greater Accra",
+    "type": "station",
+    "coordinates": {
+      "lat": 5.684488399999999,
+      "lng": -0.2537813
+    },
+    "connections": [
+      {
+        "stationId": "taifa_station",
+        "fare": 1.85,
+        "direct": true
+      },
+      {
+        "stationId": "ashongman_station",
+        "fare": 1.73,
+        "direct": true
+      },
+      {
+        "stationId": "agbogba_station",
+        "fare": 2.21,
+        "direct": true
+      },
+      {
+        "stopId": "pure_fire_kwabenya",
+        "direct": true,
+        "fare": 1.15
+      },
+      {
+        "stopId": "ashongman_estates",
+        "direct": true,
+        "fare": 2.22
+      },
+      {
+        "stopId": "st_johns_dome",
+        "direct": true,
+        "fare": 2.34
+      },
+      {
+        "stopId": "atomic_down",
+        "direct": true,
+        "fare": 1.41
+      },
+      {
+        "stopId": "pantang",
+        "direct": true,
+        "fare": 2.49
+      }
+    ]
+  },
+  {
+    "id": "madina_station",
+    "name": "Madina Station",
+    "region": "Greater Accra",
+    "type": "station",
+    "coordinates": {
+      "lat": 5.676793399999999,
+      "lng": -0.170899
+    },
+    "connections": [
+      {
+        "stationId": "east_legon_station",
+        "fare": 1.68,
+        "direct": true
+      },
+      {
+        "stationId": "adenta_station",
+        "fare": 2.14,
+        "direct": true
+      },
+      {
+        "stationId": "haasto_station",
+        "fare": 1.37,
+        "direct": true
+      },
+      {
+        "stopId": "madina_zongo_junction",
+        "direct": true,
+        "fare": 1.3
+      },
+      {
+        "stopId": "melcom_madina",
+        "direct": true,
+        "fare": 1.48
+      },
+      {
+        "stopId": "pantang",
+        "direct": true,
+        "fare": 1.17
+      },
+      {
+        "stopId": "atomic",
+        "direct": true,
+        "fare": 1.16
+      },
+      {
+        "stopId": "goil_adenta",
+        "direct": true,
+        "fare": 1.82
+      },
+      {
+        "stopId": "oyarifa_goil",
+        "direct": true,
+        "fare": 2.22
+      }
+    ]
+  },
+  {
+    "id": "oyarifa_station",
+    "name": "Oyarifa Station",
+    "region": "Greater Accra",
+    "type": "station",
+    "coordinates": {
+      "lat": 5.7556353,
+      "lng": -0.1738945
+    },
+    "connections": [
+      {
+        "stationId": "adenta_station",
+        "fare": 2.01,
+        "direct": true
+      },
+      {
+        "stationId": "kitase_station",
+        "fare": 1.64,
+        "direct": true
+      },
+      {
+        "stationId": "ayi_mensah_station",
+        "fare": 1.53,
+        "direct": true
+      },
+      {
+        "stopId": "oyarifa_goil",
+        "direct": true,
+        "fare": 1.14
+      },
+      {
+        "stopId": "oyarifa_junction",
+        "direct": true,
+        "fare": 1.61
+      },
+      {
+        "stopId": "pantang",
+        "direct": true,
+        "fare": 1.63
+      },
+      {
+        "stopId": "kitase_junction",
+        "direct": true,
+        "fare": 2.44
+      },
+      {
+        "stopId": "ashesi_university",
+        "direct": true,
+        "fare": 1.04
+      },
+      {
+        "stopId": "goil_adenta",
+        "direct": true,
+        "fare": 2.18
+      }
+    ]
+  },
+  {
+    "id": "pokuase_station",
+    "connections": [
+      {
+        "stationId": "kitase_station",
+        "fare": 1.56,
+        "direct": true
+      },
+      {
+        "stationId": "taifa_station",
+        "fare": 1.3,
+        "direct": true
+      },
+      {
+        "stopId": "pokuase_junction",
+        "direct": true,
+        "fare": 2.03
+      }
+    ]
+  },
+  {
+    "id": "shiashie_station",
+    "name": "Shiashie Station",
+    "region": "Greater Accra",
+    "type": "station",
+    "coordinates": {
+      "lat": 5.63394,
+      "lng": -0.1740815
+    },
+    "connections": [
+      {
+        "stationId": "madina_station",
+        "fare": 2.3,
+        "direct": true
+      },
+      {
+        "stationId": "east_legon_station",
+        "fare": 2.1,
+        "direct": true
+      },
+      {
+        "stationId": "haasto_station",
+        "fare": 1.9,
+        "direct": true
+      },
+      {
+        "stopId": "melcom_madina",
+        "direct": true
+      },
+      {
+        "stopId": "ashesi_university",
+        "direct": true
+      },
+      {
+        "stopId": "st_johns_dome",
+        "direct": true
+      },
+      {
+        "stopId": "taifa_barrier",
+        "direct": true
+      },
+      {
+        "stopId": "golf_park",
+        "direct": true
+      },
+      {
+        "stopId": "east_legon_bawaleshie",
+        "direct": true
+      }
+    ]
+  },
+  {
+    "id": "taifa_station",
+    "name": "Taifa Station",
+    "region": "Greater Accra",
+    "type": "station",
+    "coordinates": {
+      "lat": 5.667872699999999,
+      "lng": -0.2533749
+    },
+    "connections": [
+      {
+        "stationId": "kwabenya_station",
+        "fare": 2.65,
+        "direct": true
+      },
+      {
+        "stationId": "pokuase_station",
+        "fare": 2.06,
+        "direct": true
+      },
+      {
+        "stationId": "haasto_station",
+        "fare": 2.55,
+        "direct": true
+      },
+      {
+        "stopId": "taifa_barrier",
+        "direct": true,
+        "fare": 2.15
+      },
+      {
+        "stopId": "pokuase_junction",
+        "direct": true,
+        "fare": 1.55
+      },
+      {
+        "stopId": "ashongman_estates",
+        "direct": true,
+        "fare": 2.16
+      },
+      {
+        "stopId": "pure_fire_kwabenya",
+        "direct": true,
+        "fare": 1.58
+      },
+      {
+        "stopId": "asofan",
+        "direct": true,
+        "fare": 2.48
+      },
+      {
+        "stopId": "atomic_down",
+        "direct": true,
+        "fare": 1.44
+      }
+    ]
+  }
+]

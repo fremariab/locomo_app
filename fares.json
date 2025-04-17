@@ -1,0 +1,32 @@
+[
+  {
+    "id": "station_to_station",
+    "circle_station_madina_station": 6,
+    "circle_station_accra_mall_station": 3,
+    "madina_station_circle_station": 6,
+    "madina_station_adenta_station": 3,
+    "madina_station_haasto_station": 2,
+    "adenta_station_madina_station": 3,
+    "adenta_station_oyarifa_station": 4,
+    "haasto_station_madina_station": 2,
+    "haasto_station_kwabenya_station": 3,
+    "kwabenya_station_haasto_station": 3,
+    "accra_mall_station_circle_station": 3,
+    "accra_mall_station_east_legon_station": 2,
+    "east_legon_station_accra_mall_station": 2,
+    "east_legon_station_madina_station": 3,
+    "oyarifa_station_adenta_station": 4,
+    "oyarifa_station_kitase_station": 3,
+    "kitase_station_oyarifa_station": 3,
+    "ashongman_station_agbogba_station": 5,
+    "agbogba_station_pure_fire_station": 4,
+    "ashongman_station_old_ashongman_station": 3
+  },
+  {
+    "id": "stop_to_stop",
+    "accra_mall_ashesi_university": 9,
+    "danfa_adenta_barrier": 4,
+    "ashongman_agbogba": 3,
+    "pantang_special_ice": 3
+  }
+]

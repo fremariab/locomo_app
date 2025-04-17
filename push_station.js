@@ -1,75 +1,48 @@
-const admin = require("firebase-admin");
-const serviceAccount = require("./service_account.json");
+const fs = require('fs');
+const admin = require('firebase-admin');
 
+// 🔑 Your Firebase service account key
+const serviceAccount = require('./service_account.json');
+
+// 🔥 Initialize Firebase Admin
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  credential: admin.credential.cert(serviceAccount)
 });
 
 const db = admin.firestore();
 
-const newStops = [
-  {
-    id: "bubuashie",
-    name: "Bubuashie",
-    coordinates: null,
-    nearbyStationId: null,
-    type: "stop"
-  },
-  {
-    id: "lapaz",
-    name: "Lapaz",
-    coordinates: null,
-    nearbyStationId: null,
-    type: "stop"
-  },
-  {
-    id: "mccarthy_hill",
-    name: "McCarthy Hill",
-    coordinates: null,
-    nearbyStationId: null,
-    type: "stop"
-  },
-  {
-    id: "santa_maria",
-    name: "Santa Maria",
-    coordinates: null,
-    nearbyStationId: null,
-    type: "stop"
-  },
-  {
-    id: "sowutuom",
-    name: "Sowutuom",
-    coordinates: null,
-    nearbyStationId: null,
-    type: "stop"
-  },
-  {
-    id: "tabora",
-    name: "Tabora",
-    coordinates: null,
-    nearbyStationId: null,
-    type: "stop"
-  },
-  {
-    id: "dansoman_roundabout",
-    name: "Dansoman Roundabout",
-    coordinates: null,
-    nearbyStationId: null,
-    type: "stop"
-  }
-];
+// ✏️ List the collections to export
+const collectionsToExport = ['stations', 'stops', 'fares'];
 
-const pushStops = async () => {
+async function exportCollectionToJson(collectionName) {
   try {
-    for (const stop of newStops) {
-      await db.collection("stops").doc(stop.id).set(stop);
-    }
-    console.log("✅ New stops uploaded successfully!");
-    process.exit(0);
-  } catch (err) {
-    console.error("❌ Error uploading stops:", err);
-    process.exit(1);
-  }
-};
+    const snapshot = await db.collection(collectionName).get();
 
-pushStops();
+    if (snapshot.empty) {
+      console.log(`⚠️ No documents found in collection: ${collectionName}`);
+      return;
+    }
+
+    const data = [];
+    snapshot.forEach(doc => {
+      data.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+
+    const fileName = `${collectionName}.json`;
+    fs.writeFileSync(fileName, JSON.stringify(data, null, 2));
+    console.log(`✅ Exported ${data.length} docs from "${collectionName}" → ${fileName}`);
+  } catch (error) {
+    console.error(`❌ Failed to export "${collectionName}":`, error);
+  }
+}
+
+async function exportAllCollections() {
+  for (const name of collectionsToExport) {
+    await exportCollectionToJson(name);
+  }
+}
+
+exportAllCollections();

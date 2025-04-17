@@ -1,9 +1,10 @@
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:locomo_app/screens/search.dart';
 import 'package:locomo_app/screens/trip_details.dart';
-import 'package:locomo_app/widgets/main_scaffold.dart';
+import 'package:locomo_app/widgets/MainScaffold.dart';
 import 'package:locomo_app/services/database_helper.dart';
 import 'package:locomo_app/services/connectivity_service.dart';
 import 'package:locomo_app/models/route.dart';
@@ -33,14 +34,14 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
     super.initState();
     _checkConnectivity();
     _loadFavoriteRoutes();
-    
+
     ConnectivityService().connectivityStream.listen((isOnline) {
       if (mounted) {
         setState(() {
           _isOnline = isOnline;
         });
       }
-      
+
       if (_isOnline) {
         _syncUnsyncedRoutes();
       }
@@ -56,6 +57,75 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
     }
   }
 
+  void _showSuccessMessage(String message) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.success, // Other types: SUCCESS, ERROR, WARNING
+      animType: AnimType.scale,
+      title: 'Success',
+      desc: message,
+      btnOkOnPress: () {},
+      btnOkColor: const Color.fromARGB(255, 20, 123, 7), // optional
+      customHeader: const Icon(
+        Icons.check_circle_outline,
+        color: Color.fromARGB(255, 20, 123, 7),
+        size: 60,
+      ),
+      showCloseIcon: true,
+    ).show();
+  }
+
+  void _confirmDelete(BuildContext context, VoidCallback onConfirmed) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.warning,
+      animType: AnimType.rightSlide,
+      title: 'Are you sure?',
+      desc: 'This action cannot be undone.',
+      btnCancelOnPress: () {},
+      btnCancelText: 'Cancel',
+      btnOkOnPress: onConfirmed,
+      btnOkText: 'Yes, delete',
+      btnOkColor: const Color(0xFFC32E31),
+    ).show();
+  }
+
+  void _showErrorMessage(String message) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.error, // Other types: SUCCESS, ERROR, WARNING
+      animType: AnimType.scale,
+      title: 'Error',
+      showCloseIcon: true,
+
+      desc: message,
+      btnOkOnPress: () {},
+      btnOkColor: const Color(0xFFC32E31),
+      customHeader: const Icon(
+        Icons.error_outline,
+        color: Color(0xFFC32E31),
+        size: 60,
+      ), // optional
+    ).show();
+  }
+
+  void _showInfoMessage(String message) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.noHeader, // Other types: SUCCESS, ERROR, WARNING
+      animType: AnimType.scale,
+      desc: message,
+      btnOkOnPress: () {},
+      btnOkColor: const Color(0xFF656565), // optional
+      showCloseIcon: true,
+      customHeader: const Icon(
+        Icons.info_outline,
+        color: Color(0xFF656565),
+        size: 60,
+      ),
+    ).show();
+  }
+
   Future<void> _loadFavoriteRoutes() async {
     if (_auth.currentUser?.uid == null) {
       if (mounted) {
@@ -67,15 +137,16 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
     }
 
     try {
-      final localRoutes = await DatabaseHelper().getFavoriteRoutes(_auth.currentUser!.uid);
-      
+      final localRoutes =
+          await DatabaseHelper().getFavoriteRoutes(_auth.currentUser!.uid);
+
       if (mounted) {
         setState(() {
           _favoriteRoutes = localRoutes;
           _isLoading = false;
         });
       }
-      
+
       if (_isOnline) {
         final snapshot = await _firestore
             .collection('users')
@@ -95,15 +166,15 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
             'synced': 1,
           };
         }).toList();
-        
+
         final mergedRoutes = List<Map<String, dynamic>>.from(_favoriteRoutes);
-        
+
         for (final route in firestoreRoutes) {
           if (!mergedRoutes.any((r) => r['id'] == route['id'])) {
             mergedRoutes.add(route);
           }
         }
-        
+
         if (mounted) {
           setState(() {
             _favoriteRoutes = mergedRoutes;
@@ -122,10 +193,10 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
 
   Future<void> _syncUnsyncedRoutes() async {
     if (_auth.currentUser?.uid == null || !_isOnline) return;
-    
+
     try {
       final unsyncedRoutes = await DatabaseHelper().getUnsyncedFavoriteRoutes();
-      
+
       for (final route in unsyncedRoutes) {
         final existingRoutes = await _firestore
             .collection('users')
@@ -133,7 +204,7 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
             .collection('favorite_routes')
             .doc(route['id'])
             .get();
-            
+
         if (!existingRoutes.exists) {
           await _firestore
               .collection('users')
@@ -147,11 +218,11 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
             'createdAt': FieldValue.serverTimestamp(),
             'userId': _auth.currentUser!.uid,
           });
-          
+
           await DatabaseHelper().markFavoriteRouteAsSynced(route['id']);
         }
       }
-      
+
       _loadFavoriteRoutes();
     } catch (e) {
       debugPrint('Error syncing routes: $e');
@@ -282,7 +353,7 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
                         itemBuilder: (context, index) {
                           final route = _favoriteRoutes[index];
                           final bool isSynced = route['synced'] == 1;
-                          
+
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
                             shape: RoundedRectangleBorder(
@@ -316,9 +387,25 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
                                 ),
                               ),
                               trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline),
-                                color: Colors.red,
-                                onPressed: () => _deleteFavoriteRoute(route['id']),
+                                icon: Icon(Icons.delete, color: Colors.red),
+                                onPressed: () {
+                                  final routeId =
+                                      route['id']; // ✅ Get the actual route ID
+                                  _confirmDelete(context, () async {
+                                    await _deleteFavoriteRoute(
+                                        routeId); // ✅ Use your existing function
+                                    AwesomeDialog(
+                                      context: context,
+                                      dialogType: DialogType.success,
+                                      animType: AnimType.scale,
+                                      title: 'Deleted!',
+                                      desc:
+                                          'The route was successfully deleted.',
+                                      btnOkOnPress: () {},
+                                      btnOkColor: Colors.green,
+                                    ).show();
+                                  });
+                                },
                               ),
                               onTap: () {
                                 if (route['routeData'] != null) {
@@ -326,7 +413,8 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) => TripDetailsScreen(
-                                        route: CompositeRoute.fromMap(route['routeData']),
+                                        route: CompositeRoute.fromMap(
+                                            route['routeData']),
                                         isFromFavorites: true,
                                       ),
                                     ),
@@ -337,7 +425,8 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
                                     MaterialPageRoute(
                                       builder: (_) => TravelHomePage(
                                         initialOrigin: route['origin'],
-                                        initialDestination: route['destination'],
+                                        initialDestination:
+                                            route['destination'],
                                       ),
                                     ),
                                   );
@@ -366,7 +455,7 @@ class _SavedLocationsScreenState extends State<SavedLocationsScreen> {
 
     try {
       await DatabaseHelper().deleteFavoriteRoute(routeId);
-      
+
       if (_isOnline) {
         await _firestore
             .collection('users')

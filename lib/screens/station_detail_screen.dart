@@ -23,6 +23,12 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
   @override
   void initState() {
     super.initState();
+      print('🚏 Received station: ${widget.station}');
+      print('🚏 Station ID: ${widget.station.id}');
+print('🚏 Station name: ${widget.station.name}');
+print('🚏 Station lat/lng: ${widget.station.latitude}, ${widget.station.longitude}');
+
+
     _initializeMap();
   }
 
@@ -97,36 +103,42 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
   }
 
   Widget _buildConnectionsList() {
-    final connections = widget.station.connections;
-
-    if (connections == null || connections.isEmpty) {
-      return const Center(
-        child: Text('No connections available'),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: connections.length,
-      itemBuilder: (context, index) {
-        final connection = connections[index];
-        final formattedName =
-            _formatStationId(connection['stationId']?.toString() ?? 'Unknown');
-
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: ListTile(
-            leading: const Icon(Icons.directions_bus, color: Color(0xFFC32E31)),
-            title: Text(formattedName),
-            subtitle: Text(
-              'Fare: GHS${connection['fare']?.toString() ?? 'N/A'} • '
-              '${connection['direct'] == true ? "Direct" : "Transfer"}',
-            ),
-          ),
-        );
-      },
+  final connections = widget.station.connections;
+  print('🔗 Connections for ${widget.station.name}: $connections');
+  
+  if (connections == null || connections.isEmpty) {
+    return const Center(
+      child: Text('No connections available'),
     );
   }
 
+  return ListView.builder(
+    itemCount: connections.length,
+    itemBuilder: (context, index) {
+      final connection = connections[index];
+      print('🔄 Connection ${index}: $connection');
+
+      // Get either stationId or stopId
+      final id = connection['stationId'] ?? connection['stopId'] ?? 'unknown';
+
+      // Format name nicely
+      final formattedName = _formatStationId(id.toString());
+
+      return Card(
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: ListTile(
+          leading: const Icon(Icons.directions_bus, color: Color(0xFFC32E31)),
+          title: Text(formattedName),
+          subtitle: Text(
+            '${connection.containsKey('stopId') ? "Stop" : "Station"} • '
+            '${connection.containsKey('fare') ? "Fare: GHS${connection['fare']?.toString() ?? 'N/A'}" : "Fare: N/A"} • '
+            '${connection['direct'] == true ? "Direct" : "Transfer"}',
+          ),
+        ),
+      );
+    },
+  );
+}
   @override
   void dispose() {
     _mapController?.dispose();

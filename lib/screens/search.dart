@@ -1,6 +1,8 @@
-import 'package:locomo_app/models/route.dart';
+import 'dart:convert';
+
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:http/http.dart' as http;
 import 'package:locomo_app/services/database_helper.dart';
-import 'package:locomo_app/services/connectivity_service.dart';
 import 'package:locomo_app/screens/station_detail_screen.dart';
 import 'package:locomo_app/screens/search_results.dart' as search_results;
 import 'package:flutter/material.dart';
@@ -10,8 +12,7 @@ import 'package:locomo_app/models/station_model.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:uuid/uuid.dart';
-import 'package:locomo_app/widgets/main_scaffold.dart';
+import 'package:locomo_app/widgets/MainScaffold.dart';
 
 class TravelHomePage extends StatefulWidget {
   final String? initialOrigin;
@@ -32,6 +33,7 @@ class _TravelHomePageState extends State<TravelHomePage> {
   String? _selectedOrigin;
   String? _selectedDestination;
   final TextEditingController _controller = TextEditingController();
+  final TextEditingController _originController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   bool useDartRouting =
@@ -43,10 +45,16 @@ class _TravelHomePageState extends State<TravelHomePage> {
     super.initState();
     _loadLocations();
     _loadAllStations();
+
+    if (widget.initialOrigin != null) {
+      _originController.text = widget.initialOrigin!;
+    }
   }
 
   Future<void> _loadAllStations() async {
     final stations = await RouteService.getAllStationsAndStops();
+    print('🔍 Fetched ${stations.length} stations');
+
     if (mounted) {
       setState(() {
         _allStations = stations;
@@ -69,10 +77,137 @@ class _TravelHomePageState extends State<TravelHomePage> {
 
     if (mounted) {
       setState(() {
-        _selectedOrigin = _findClosest(stations, userLat, userLng);
-        _selectedDestination = _findClosest(stations, userLat, userLng);
+        _selectedDestination = findClosestNode(_allStations, userLat, userLng);
       });
     }
+  }
+
+  Future<String?> getAddressFromCoordinates(double lat, double lng) async {
+    const apiKey =
+        'AIzaSyCPHQDG-WWZvehWnrpSlQAssPAHPUw2pmM'; // Replace with your actual key
+    final url = Uri.parse(
+      'https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$lng&key=$apiKey',
+    );
+
+    try {
+      final response = await http.get(url);
+      final data = json.decode(response.body);
+
+      if (data['status'] == 'OK') {
+        final address = data['results'][0]['formatted_address'];
+        return address;
+      } else {
+        print("❌ Geocoding failed: ${data['status']}");
+        return null;
+      }
+    } catch (e) {
+      print("❌ Error during geocoding: $e");
+      return null;
+    }
+  }
+
+  Future<void> _setOriginFromLocation() async {
+    _showLoadingDialog("Setting origin from your current location...");
+
+    final locationString = await MapService.getUserLocation();
+
+    if (locationString == null) {
+      if (mounted) Navigator.pop(context);
+
+      _showErrorMessage("Unable to get your location.");
+
+      return;
+    }
+
+    final parts = locationString.split(',');
+    final double userLat = double.parse(parts[0]);
+    final double userLng = double.parse(parts[1]);
+
+    final address = await getAddressFromCoordinates(userLat, userLng);
+
+    if (mounted) Navigator.pop(context); // ✅ Dismiss the loading dialog
+
+    if (address != null) {
+      _originController.text = address;
+      setState(() => _selectedOrigin = address);
+      _showSuccessMessage("Origin set to: $address");
+    } else {
+      _showErrorMessage("Could not fetch address");
+    }
+  }
+
+  void _showSuccessMessage(String message) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.success, // Other types: SUCCESS, ERROR, WARNING
+      animType: AnimType.scale,
+      title: 'Success',
+      desc: message,
+      btnOkOnPress: () {},
+      btnOkColor: const Color.fromARGB(255, 20, 123, 7), // optional
+      customHeader: const Icon(
+        Icons.check_circle_outline,
+        color: Color.fromARGB(255, 20, 123, 7),
+        size: 60,
+      ),
+      showCloseIcon: true,
+    ).show();
+  }
+
+  void _showErrorMessage(String message) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.error, // Other types: SUCCESS, ERROR, WARNING
+      animType: AnimType.scale,
+      title: 'Error',
+      showCloseIcon: true,
+
+      desc: message,
+      btnOkOnPress: () {},
+      btnOkColor: const Color(0xFFC32E31),
+      customHeader: const Icon(
+        Icons.error_outline,
+        color: Color(0xFFC32E31),
+        size: 60,
+      ), // optional
+    ).show();
+  }
+
+  void _showInfoMessage(String message) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.noHeader, // Other types: SUCCESS, ERROR, WARNING
+      animType: AnimType.scale,
+      desc: message,
+      btnOkOnPress: () {},
+      btnOkColor: const Color(0xFF656565), // optional
+      showCloseIcon: true,
+      customHeader: const Icon(
+        Icons.info_outline,
+        color: Color(0xFF656565),
+        size: 60,
+      ),
+    ).show();
+  }
+
+  void _showLoadingDialog(String message) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xffc32e21)),
+            ),
+            const SizedBox(height: 16),
+            Text(message, textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -121,18 +256,60 @@ class _TravelHomePageState extends State<TravelHomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextField(
-                      decoration: const InputDecoration(
-                        labelText: 'Origin',
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (val) => setState(() => _selectedOrigin = val),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            decoration: const InputDecoration(
+                              labelText: 'Origin',
+                              border: OutlineInputBorder(),
+                              labelStyle: TextStyle(
+                                color: Color(0xFFD9D9D9),
+                                fontWeight: FontWeight.w200,
+                                fontSize: 16,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide:
+                                    BorderSide(color: Color(0xFFD9D9D9)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide:
+                                    BorderSide(color: Color(0xFFD9D9D9)),
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                            ),
+                            controller: _originController,
+                            onChanged: (val) =>
+                                setState(() => _selectedOrigin = val),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.my_location,
+                              color: Color(0xFF656565)),
+                          tooltip: 'Use My Location',
+                          onPressed: _setOriginFromLocation,
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       decoration: const InputDecoration(
                         labelText: 'Destination',
                         border: OutlineInputBorder(),
+                        labelStyle: TextStyle(
+                          color: Color(0xFFD9D9D9),
+                          fontWeight: FontWeight.w200,
+                          fontSize: 16,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFFD9D9D9)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFFD9D9D9)),
+                        ),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       onChanged: (val) =>
                           setState(() => _selectedDestination = val),
@@ -143,7 +320,7 @@ class _TravelHomePageState extends State<TravelHomePage> {
                         Expanded(
                             flex: 2,
                             child: DropdownButtonFormField<String>(
-                              iconEnabledColor: Colors.white,
+                              iconEnabledColor: Color(0xFFd9d9d9),
                               dropdownColor: const Color(0xFFd9d9d9),
                               decoration: const InputDecoration(
                                 labelText: 'Travel Preference',
@@ -164,7 +341,8 @@ class _TravelHomePageState extends State<TravelHomePage> {
                                     horizontal: 16, vertical: 12),
                               ),
                               style: const TextStyle(
-                                color: Colors.black,
+                                color: Color(0xFFD9D9D9),
+                                fontFamily: 'Poppins',
                                 fontSize: 16,
                                 fontWeight: FontWeight.w400,
                               ),
@@ -237,19 +415,20 @@ class _TravelHomePageState extends State<TravelHomePage> {
                           final destination = _selectedDestination;
 
                           if (origin == null || destination == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                    "Please select both origin and destination"),
-                              ),
-                            );
+                            _showErrorMessage(
+                                "Please select both origin and destination.");
+
                             return;
                           }
+
+                          _showLoadingDialog("Searching...");
 
                           try {
                             final routes =
                                 await RouteService.findRouteDartBased(
                                     origin, destination);
+                            if (mounted) Navigator.pop(context); // Close dialog
+
                             if (routes.isNotEmpty) {
                               Navigator.push(
                                 context,
@@ -265,15 +444,12 @@ class _TravelHomePageState extends State<TravelHomePage> {
                                 ),
                               );
                             } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                      "No valid Trotro routes available for this trip. Try changing origin or destination."),
-                                ),
-                              );
+                              _showInfoMessage(
+                                  "No valid trotro routes available.");
                             }
                           } catch (e) {
-                            debugPrint('❌ Error in Dart route finding: $e');
+                            if (mounted) Navigator.pop(context);
+                            debugPrint('❌ Error: $e');
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                   content: Text("Error finding route: $e")),
@@ -365,19 +541,25 @@ class _TravelHomePageState extends State<TravelHomePage> {
 
   Future<void> _navigateToStationDetail(String stationName) async {
     try {
-      final station = _allStations.firstWhere(
+      // 1️⃣ Find the in‑memory station so we can grab its ID
+      final inMem = _allStations.firstWhere(
         (s) => s.name == stationName,
-        orElse: () => TrotroStation.temporary(
-          name: stationName,
-          latitude: 0.0,
-          longitude: 0.0,
-        ),
+        orElse: () {
+          throw StateError('No station named $stationName in memory');
+        },
       );
 
+      // 2️⃣ Fetch the full document from Firestore by ID
+      final doc = await _firestore.collection('stations').doc(inMem.id).get();
+
+      // 3️⃣ Build your TrotroStation with the factory
+      final fullStation = TrotroStation.fromFirestore(doc);
+
+      // 4️⃣ Navigate with the “real” station
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => StationDetailScreen(station: station),
+          builder: (_) => StationDetailScreen(station: fullStation),
         ),
       );
     } catch (e) {
@@ -390,17 +572,16 @@ class _TravelHomePageState extends State<TravelHomePage> {
     }
   }
 
-  String _findClosest(
-      List<TrotroStation> stations, double userLat, double userLng) {
-    if (stations.isEmpty) return '';
+  String findClosestNode(List<TrotroStation> allNodes, double lat, double lng) {
+    if (allNodes.isEmpty) return '';
 
-    stations.sort((a, b) {
-      final distA = a.distanceTo(userLat, userLng);
-      final distB = b.distanceTo(userLat, userLng);
+    allNodes.sort((a, b) {
+      final distA = a.distanceTo(lat, lng);
+      final distB = b.distanceTo(lat, lng);
       return distA.compareTo(distB);
     });
 
-    return stations.first.name;
+    return allNodes.first.id; // Make sure this ID matches graph keys
   }
 
   Future<void> _saveRouteToFavorites(
@@ -467,21 +648,10 @@ class _TravelHomePageState extends State<TravelHomePage> {
         routeData: routeMap,
         synced: 1,
       );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Route saved to favorites'),
-          backgroundColor: Color(0xFFC32E31),
-        ),
-      );
+      _showSuccessMessage("Route saved to favorites");
     } catch (e) {
       debugPrint('Error saving route to favorites: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to save route: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showErrorMessage("Failed to save route: ${e.toString()}");
     }
   }
 }
@@ -594,28 +764,57 @@ class StationsListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('All Stations'),
-        backgroundColor: const Color(0xFFC32E31),
-      ),
-      body: ListView.builder(
-        itemCount: stations.length,
-        itemBuilder: (context, index) {
-          final station = stations[index];
-          return ListTile(
-            title: Text(station.name),
-            subtitle: Text(station.description ?? ''),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => StationDetailScreen(station: station),
-                ),
-              );
-            },
-          );
-        },
+    final stationOnly = stations.where((s) => s.isStation).toList();
+    return MainScaffold(
+      currentIndex: 0, // or whatever index Explore tab is
+      child: Column(
+        children: [
+          AppBar(
+            title: const Text('All Stations & Stops'),
+            backgroundColor: const Color(0xFFC32E31),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: stations.length,
+              itemBuilder: (context, index) {
+                final station = stationOnly[index];
+                return Column(
+                  children: [
+                    ListTile(
+                      title: Text(
+                        station.name,
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      subtitle: Text(station.description ?? ''),
+                      onTap: () async {
+                        // Fetch the doc by station.id
+                        final doc = await FirebaseFirestore.instance
+                            .collection('stations')
+                            .doc(station.id)
+                            .get();
+
+                        final fullStation = TrotroStation.fromFirestore(doc);
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                StationDetailScreen(station: fullStation),
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: Color(0xFFE0E0E0),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

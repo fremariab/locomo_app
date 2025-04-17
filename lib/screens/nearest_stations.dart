@@ -8,7 +8,7 @@ import 'package:location/location.dart' as loc;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:locomo_app/widgets/main_scaffold.dart';
+// import 'package:locomo_app/widgets/main_scaffold.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -18,6 +18,8 @@ import 'package:locomo_app/services/location_service.dart';
 import 'package:locomo_app/services/map_downloader.dart';
 import 'dart:io' show Platform;
 import 'package:latlong2/latlong.dart' as ll;
+import 'package:locomo_app/widgets/MainScaffold.dart';
+
 
 class NearestStationsScreen extends StatefulWidget {
   const NearestStationsScreen({super.key});
@@ -28,11 +30,11 @@ class NearestStationsScreen extends StatefulWidget {
 
 class NearestStationsScreenState extends State<NearestStationsScreen> {
   // Define colors inline
-  static const Color primaryRed = Color(0xFFC33939);
+  static const Color primaryRed = Color(0xFFC32e21);
   static const Color white = Colors.white;
   static const Color lightGrey = Color(0xFFEEEEEE);
-  static const Color darkGrey = Color(0xFF616161);
-  static const Color iconGrey = Color(0xFF757575);
+  static const Color darkGrey = Color(0xFF656565);
+  static const Color iconGrey = Color(0xFFd9d9d9);
   static const Color textPrimary = Colors.black87;
 
   // Google Maps controller
@@ -137,9 +139,7 @@ class NearestStationsScreenState extends State<NearestStationsScreen> {
 
       var location = await _locationService.getLocation();
 
-      if (mounted &&
-          location.latitude != null &&
-          location.longitude != null) {
+      if (mounted && location.latitude != null && location.longitude != null) {
         setState(() {
           _currentLocation = location;
           _initialCameraPosition = CameraPosition(
@@ -196,7 +196,8 @@ class NearestStationsScreenState extends State<NearestStationsScreen> {
       _showLoadingDialog('Finding nearby stations...');
 
       final locData = await LocationService.instance.getCurrentLocation();
-      debugPrint("Current location: ${locData?.latitude}, ${locData?.longitude}");
+      debugPrint(
+          "Current location: ${locData?.latitude}, ${locData?.longitude}");
 
       if (locData == null) {
         if (mounted) Navigator.pop(context);
@@ -285,34 +286,64 @@ class NearestStationsScreenState extends State<NearestStationsScreen> {
 
   Future<void> _downloadMapAsPdf() async {
     try {
-      // 1. Check permissions
       if (!await _checkStoragePermission()) return;
 
-      // 2. Get location if needed
+      setState(() {
+        _isMapDownloading = true;
+      });
+
+      _showLoadingDialog('Preparing map download...');
+
       if (_currentLocation == null) {
         await _getCurrentLocation();
         if (_currentLocation == null) {
+          if (mounted) Navigator.pop(context);
           throw Exception('Could not get current location');
         }
       }
 
-      // 3. Download with progress
-      _showLoadingDialog('Downloading map...');
-      final path = await MapDownloader.downloadMapForLocation(
-        location: ll.LatLng(
-            _currentLocation!.latitude!, _currentLocation!.longitude!),
-        fileName: 'trotro_map',
-        radius: 300.0,
-        minZoom: 12,
-        maxZoom: 13,
+      // Get nearby stations first
+      final nearbyStations = await FirebaseService().getNearbyStations(
+        _currentLocation!.latitude!,
+        _currentLocation!.longitude!,
+        1000.0, // 1km radius
       );
 
-      // 4. Show result
-      if (mounted) Navigator.pop(context); // Dismiss loading
-      _showDownloadSuccess(path);
+      // Convert to LatLng list
+      final stationPoints = nearbyStations.map((station) {
+        if (station['coordinates'] is Map) {
+          return LatLng(
+            station['coordinates']['lat'],
+            station['coordinates']['lng'],
+          );
+        } else if (station['location'] is GeoPoint) {
+          final geo = station['location'] as GeoPoint;
+          return LatLng(geo.latitude, geo.longitude);
+        }
+        return LatLng(0, 0); // fallback
+      }).toList();
+
+      // Download the map
+      final path = await MapDownloader.downloadStationsMap(
+        stations: stationPoints,
+        fileName: 'trotro_map',
+      );
+
+      if (mounted) {
+        Navigator.pop(context);
+        _showDownloadSuccess(path);
+      }
     } catch (e) {
-      if (mounted && Navigator.canPop(context)) Navigator.pop(context);
-      _showDownloadError(e.toString());
+      if (mounted) {
+        Navigator.pop(context);
+        _showDownloadError(e.toString());
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isMapDownloading = false;
+        });
+      }
     }
   }
 
@@ -332,30 +363,49 @@ class NearestStationsScreenState extends State<NearestStationsScreen> {
   }
 
   void _showDownloadSuccess(String path) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Map saved to:\n${path.split('/').last}'),
-        duration: const Duration(seconds: 5),
-        action: SnackBarAction(
-          label: 'OPEN',
-          onPressed: () => OpenFile.open(path),
-        ),
+  if (!mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('Map downloaded successfully!',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          Text('Saved to: ${path.split('/').last}'),
+        ],
       ),
-    );
-  }
+      duration: const Duration(seconds: 5),
+      action: SnackBarAction(
+        label: 'OPEN',
+        textColor: white,
+        onPressed: () => OpenFile.open(path),
+      ),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+    ),
+  );
+}
 
-  void _showDownloadError(String error) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Download failed: $error')),
-    );
-    debugPrint('Download error: $error');
-  }
-
+void _showDownloadError(String error) {
+  if (!mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text('Download failed: ${error.split('\n').first}'),
+      duration: const Duration(seconds: 5),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+    ),
+  );
+  debugPrint('Download error: $error');
+}
   void _updateCurrentLocationMarker() {
     if (_currentLocation == null) return;
-    
+
     final currentLocationMarker = Marker(
       markerId: const MarkerId('current_location'),
       position:
@@ -380,8 +430,8 @@ class NearestStationsScreenState extends State<NearestStationsScreen> {
       // Clear existing markers except current location
       if (mounted) {
         setState(() {
-          _markers
-              .removeWhere((marker) => marker.markerId.value != 'current_location');
+          _markers.removeWhere(
+              (marker) => marker.markerId.value != 'current_location');
         });
       }
 
@@ -441,7 +491,7 @@ class NearestStationsScreenState extends State<NearestStationsScreen> {
 
   void _showStationDetails(String stationId, Map<String, dynamic> stationData) {
     if (!mounted) return;
-    
+
     // Get coordinates based on the data structure
     double latitude, longitude;
     if (stationData.containsKey('lat') && stationData.containsKey('lng')) {
@@ -489,11 +539,12 @@ class NearestStationsScreenState extends State<NearestStationsScreen> {
             ),
             const SizedBox(height: 16),
             if (stationData['routes'] != null) ...[
-              const Text('Available Routes:', style: TextStyle(
-                fontSize: 16.0,
-                fontWeight: FontWeight.w500,
-                color: textPrimary,
-              )),
+              const Text('Available Routes:',
+                  style: TextStyle(
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.w500,
+                    color: textPrimary,
+                  )),
               const SizedBox(height: 8),
               ...List.generate(
                 (stationData['routes'] as List).length,
@@ -765,24 +816,24 @@ class NearestStationsScreenState extends State<NearestStationsScreen> {
   }
 
   void _showLoadingDialog(String message) {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        content: Row(
-          children: [
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(primaryRed),
-            ),
-            const SizedBox(width: 16),
-            Text(message),
-          ],
-        ),
+  if (!mounted) return;
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(primaryRed),
+          ),
+          const SizedBox(height: 16),
+          Text(message, textAlign: TextAlign.center),
+        ],
       ),
-    );
-  }
-
+    ),
+  );
+}
   Future<void> _zoomIn() async {
     if (_controller.isCompleted) {
       final GoogleMapController controller = await _controller.future;
@@ -847,8 +898,9 @@ class NearestStationsScreenState extends State<NearestStationsScreen> {
                     onPressed: () => Navigator.pop(context),
                   ),
                   const Expanded(
+                    
                     child: Center(
-                      child: Text(
+                      child: const Text(
                         'Explore',
                         style: TextStyle(
                           color: white,
@@ -982,16 +1034,27 @@ class NearestStationsScreenState extends State<NearestStationsScreen> {
                                     borderRadius: BorderRadius.circular(4.0),
                                   ),
                                 ),
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Row(
-                                    children: const [
-                                      Icon(Icons.download, size: 18),
-                                      SizedBox(width: 8),
-                                      Text("Download Map"),
-                                    ],
-                                  ),
-                                ),
+                                child: _isMapDownloading
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  primaryRed),
+                                        ),
+                                      )
+                                    : FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Row(
+                                          children: const [
+                                            Icon(Icons.download, size: 18),
+                                            SizedBox(width: 8),
+                                            Text("Download Map"),
+                                          ],
+                                        ),
+                                      ),
                               ),
                             ),
                           ],

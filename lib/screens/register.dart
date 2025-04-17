@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'login.dart';
 import '../services/auth_service.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -14,7 +15,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _repeatPasswordController = TextEditingController();
+  final TextEditingController _repeatPasswordController =
+      TextEditingController();
 
   bool _obscurePassword = true;
   bool _obscureRepeatPassword = true;
@@ -43,8 +45,64 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   // Show a small popup message
-  void _showMessage(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+// Show message at the bottom
+  void _showSuccessMessage(String message) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.success, // Other types: SUCCESS, ERROR, WARNING
+      animType: AnimType.scale,
+      title: 'Success',
+      desc: message,
+      btnOkOnPress: () {},
+      btnOkColor: const Color.fromARGB(255, 20, 123, 7), // optional
+      customHeader: const Icon(
+        Icons.check_circle_outline,
+        color: Color.fromARGB(255, 20, 123, 7),
+        size: 60,
+      ),
+      showCloseIcon: true,
+    ).show().then((_)async{
+      await Future.delayed(const Duration(seconds: 2));
+       Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+    });
+  }
+
+  void _showErrorMessage(String message) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.error, // Other types: SUCCESS, ERROR, WARNING
+      animType: AnimType.scale,
+      title: 'Error',
+      showCloseIcon: true,
+
+      desc: message,
+      btnOkOnPress: () {},
+      btnOkColor: const Color(0xFFC32E31),
+      customHeader: const Icon(
+        Icons.error_outline,
+        color: Color(0xFFC32E31),
+        size: 60,
+      ), // optional
+    ).show();
+  }
+
+  void _showInfoMessage(String message) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.noHeader, // Other types: SUCCESS, ERROR, WARNING
+      animType: AnimType.scale,
+      desc: message,
+      btnOkOnPress: () {},
+      btnOkColor: const Color(0xFF656565), // optional
+      showCloseIcon: true,
+      customHeader: const Icon(
+        Icons.info_outline,
+        color: Color(0xFF656565),
+        size: 60,
+      ),
+    ).show();
   }
 
   // Handles the registration logic
@@ -54,48 +112,53 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final password = _passwordController.text;
     final confirmPassword = _repeatPasswordController.text;
 
-    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
-      _showMessage("Please fill in all fields.");
+    if (name.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty) {
+      _showErrorMessage("Please fill in all fields.");
       return;
     }
 
     // Validate password strength
     final passwordError = _validatePassword(password);
     if (passwordError != null) {
-      _showMessage(passwordError);
+      _showErrorMessage(passwordError);
       return;
     }
 
     if (password != confirmPassword) {
-      _showMessage("Passwords do not match.");
+      _showErrorMessage("Passwords do not match.");
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      final result = await _authService.registerWithEmail(email, password, name);
+      final result =
+          await _authService.registerWithEmail(email, password, name);
       final user = result['user'] as User?;
       final firestoreSuccess = result['firestoreSuccess'] as bool;
 
       if (user != null) {
         if (!firestoreSuccess) {
           await _authService.ensureUserInFirestore(user, name);
-          _showMessage("Registration completed. Some data synced late.");
+          _showInfoMessage(passwordError ?? "Registration successful!");
+
+          ("Registration completed. Some data synced late.");
         } else {
-          _showMessage("Registration successful!");
+          _showSuccessMessage(passwordError ?? "Registration successful!");
+          ("Registration successful!");
         }
 
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
+       
       } else {
-        _showMessage("Registration failed. Please try again.");
+        _showErrorMessage("Registration failed. Please try again.");
       }
     } on FirebaseAuthException catch (e) {
-      _showMessage("Auth error: ${e.message}");
+      _showErrorMessage("Auth error: ${e.message}");
     } catch (e) {
-      _showMessage("Unexpected error: $e");
+      _showErrorMessage("Unexpected error: $e");
     } finally {
       setState(() => _isLoading = false);
     }
@@ -176,12 +239,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 16),
                   _buildTextField(_emailController, 'Email', isEmail: true),
                   const SizedBox(height: 16),
-                  _buildPasswordField(_passwordController, 'Password', _obscurePassword, () {
+                  _buildPasswordField(
+                      _passwordController, 'Password', _obscurePassword, () {
                     setState(() => _obscurePassword = !_obscurePassword);
                   }),
                   const SizedBox(height: 16),
-                  _buildPasswordField(_repeatPasswordController, 'Repeat Password', _obscureRepeatPassword, () {
-                    setState(() => _obscureRepeatPassword = !_obscureRepeatPassword);
+                  _buildPasswordField(_repeatPasswordController,
+                      'Repeat Password', _obscureRepeatPassword, () {
+                    setState(
+                        () => _obscureRepeatPassword = !_obscureRepeatPassword);
                   }),
                   const SizedBox(height: 48),
 
@@ -193,11 +259,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       onPressed: _isLoading ? null : _register,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFC32E31),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(5)),
                         elevation: 0,
                       ),
                       child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5)
+                          ? const CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2.5)
                           : const Text(
                               'Register',
                               style: TextStyle(
@@ -228,7 +296,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       GestureDetector(
                         onTap: () {
                           Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (_) => const LoginScreen()),
+                            MaterialPageRoute(
+                                builder: (_) => const LoginScreen()),
                           );
                         },
                         child: const Text(
@@ -255,7 +324,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   // Builds a regular input field
-  Widget _buildTextField(TextEditingController controller, String label, {bool isEmail = false}) {
+  Widget _buildTextField(TextEditingController controller, String label,
+      {bool isEmail = false}) {
     return TextField(
       controller: controller,
       keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
@@ -265,13 +335,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   // Builds a password input field with show/hide toggle
-  Widget _buildPasswordField(TextEditingController controller, String label, bool obscure, VoidCallback toggle) {
+  Widget _buildPasswordField(TextEditingController controller, String label,
+      bool obscure, VoidCallback toggle) {
     return TextField(
       controller: controller,
       obscureText: obscure,
       decoration: _inputDecoration(label).copyWith(
         suffixIcon: IconButton(
-          icon: Icon(obscure ? Icons.visibility_off : Icons.visibility, color: const Color(0xFFD9D9D9)),
+          icon: Icon(obscure ? Icons.visibility_off : Icons.visibility,
+              color: const Color(0xFFD9D9D9)),
           onPressed: toggle,
         ),
       ),
@@ -289,10 +361,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
         fontFamily: 'Poppins',
         fontSize: 16,
       ),
-      enabledBorder: const OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFD9D9D9))),
-      focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFD9D9D9))),
-      errorBorder: const OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFc32e31))),
-      focusedErrorBorder: const OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFC32E31))),
+      enabledBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFFD9D9D9))),
+      focusedBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFFD9D9D9))),
+      errorBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFFc32e31))),
+      focusedErrorBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFFC32E31))),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     );
   }
@@ -322,7 +398,8 @@ class RedCurvePainter extends CustomPainter {
       ..style = PaintingStyle.fill;
     final Path lightCurvePath = Path();
     lightCurvePath.moveTo(0, size.height * 0.6);
-    lightCurvePath.quadraticBezierTo(size.width * 0.7, size.height * 0.2, size.width, size.height * 0.3);
+    lightCurvePath.quadraticBezierTo(
+        size.width * 0.7, size.height * 0.2, size.width, size.height * 0.3);
     lightCurvePath.lineTo(size.width, 0);
     lightCurvePath.lineTo(0, 0);
     lightCurvePath.close();
@@ -333,7 +410,8 @@ class RedCurvePainter extends CustomPainter {
       ..style = PaintingStyle.fill;
     final Path darkCurvePath = Path();
     darkCurvePath.moveTo(size.width * 0.5, size.height);
-    darkCurvePath.quadraticBezierTo(size.width * 0.8, size.height * 0.7, size.width, size.height * 0.8);
+    darkCurvePath.quadraticBezierTo(
+        size.width * 0.8, size.height * 0.7, size.width, size.height * 0.8);
     darkCurvePath.lineTo(size.width, size.height);
     darkCurvePath.close();
     canvas.drawPath(darkCurvePath, darkCurvePaint);

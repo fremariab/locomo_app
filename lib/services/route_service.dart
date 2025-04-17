@@ -11,23 +11,64 @@ class RouteService {
   static const String _googleMapsApiKey =
       'AIzaSyCPHQDG-WWZvehWnrpSlQAssPAHPUw2pmM';
   static const String _routesCollection = 'stations';
-  static const String _searchRoutesEndpoint =
-      'https://searchroutes-t4mpqf2cta-uc.a.run.app/searchRoutes';
 
-  /// Fetches all trotro stations and stops from Firestore
+  
   static Future<List<TrotroStation>> getAllStationsAndStops() async {
-    try {
-      final snapshot =
-          await FirebaseFirestore.instance.collection(_routesCollection).get();
+  final firestore = FirebaseFirestore.instance;
+  final allNodes = <TrotroStation>[];
 
-      return snapshot.docs
-          .map((doc) => TrotroStation.fromFirestore(doc))
-          .toList();
-    } catch (e) {
-      debugPrint('Error getting stations: $e');
-      throw Exception('Failed to load stations. Please try again later.');
+  // ─── Stations ─────────────────────────────────────────────────────────────
+  final stationSnap = await firestore.collection('stations').get();
+  for (var doc in stationSnap.docs) {
+    final data = doc.data();
+    // Normalize the nested coordinates map
+    final rawCoords = data['coordinates'];
+    double lat = 0.0, lng = 0.0;
+    if (rawCoords is Map) {
+      final coords = Map<String, dynamic>.from(rawCoords);
+      lat = (coords['lat'] as num?)?.toDouble() ?? 0.0;
+      lng = (coords['lng'] as num?)?.toDouble() ?? 0.0;
     }
+
+    final name = (data['name'] as String?)?.trim();
+    if (name == null || name.isEmpty) continue;
+
+    allNodes.add(TrotroStation(
+      id:        doc.id,
+      name:      name,
+      latitude:  lat,
+      longitude: lng,
+      isStation: true,
+      // you can populate other fields if you like
+    ));
   }
+
+  // ─── Stops ────────────────────────────────────────────────────────────────
+  final stopSnap = await firestore.collection('stops').get();
+  for (var doc in stopSnap.docs) {
+    final data = doc.data();
+    final rawCoords = data['coordinates'];
+    double lat = 0.0, lng = 0.0;
+    if (rawCoords is Map) {
+      final coords = Map<String, dynamic>.from(rawCoords);
+      lat = (coords['lat'] as num?)?.toDouble() ?? 0.0;
+      lng = (coords['lng'] as num?)?.toDouble() ?? 0.0;
+    }
+
+    final name = (data['name'] as String?)?.trim();
+    if (name == null || name.isEmpty) continue;
+
+    allNodes.add(TrotroStation(
+      id:        doc.id,
+      name:      name,
+      latitude:  lat,
+      longitude: lng,
+      isStation: false,
+    ));
+  }
+
+  return allNodes;
+}
 
   /// Gets details for a specific station by name
   static Future<TrotroStation> getStationDetails(String stationName) async {
@@ -61,50 +102,66 @@ class RouteService {
 
   /// Fetch graph from Firestore (station_id → List of connected station_ids)
   /// Fetch graph from Firestore (including both stations and stops)
-static Future<Map<String, List<String>>> buildGraph() async {
-  final graph = <String, List<String>>{};
+  static Future<Map<String, List<String>>> buildGraph() async {
+    final db = FirebaseFirestore.instance;
+    final graph = <String, List<String>>{};
 
-  // 1) Load all stops
-  final stopSnapshot = await FirebaseFirestore.instance.collection('stops').get();
-  for (var doc in stopSnapshot.docs) {
-    final data = doc.data();
-    final stopId = data['id'] ?? doc.id;
-    final nearbyStation = data['nearbyStationId'] as String?;
-    graph[stopId] = nearbyStation != null ? [nearbyStation] : [];
+    // Helper to add bidirectional edge
+    void link(String a, String b) {
+      graph.putIfAbsent(a, () => []);
+      graph.putIfAbsent(b, () => []);
+      if (!graph[a]!.contains(b)) graph[a]!.add(b);
+      if (!graph[b]!.contains(a)) graph[b]!.add(a);
+    }
+
+    // ─── Stops ────────────────────────────────────────────────────────────────
+    final stopSnap = await db.collection('stops').get();
+    for (var doc in stopSnap.docs) {
+      final stopId = doc.id;
+      graph.putIfAbsent(stopId, () => []);
+
+      final data = doc.data();
+      // 1) link stop ↔ nearest station
+      final nearby = data['nearbyStationId'] as String?;
+      if (nearby != null) link(stopId, nearby);
+
+      // 2) link stop ↔ other stops
+      final rawConns = data['connections'] as List<dynamic>? ?? [];
+      for (var c in rawConns.cast<Map<String, dynamic>>()) {
+        final otherStop = c['stopId'] as String?;
+        if (otherStop != null) link(stopId, otherStop);
+      }
+    }
+
+    // ─── Stations ─────────────────────────────────────────────────────────────
+    final stationSnap = await db.collection('stations').get();
+    for (var doc in stationSnap.docs) {
+      final stationId = doc.id;
+      graph.putIfAbsent(stationId, () => []);
+
+      final data = doc.data();
+      final rawConns = data['connections'] as List<dynamic>? ?? [];
+
+      for (var c in rawConns.cast<Map<String, dynamic>>()) {
+        // station ↔ station
+        if (c['stationId'] != null) {
+          link(stationId, c['stationId'] as String);
+        }
+        // station ↔ stop
+        if (c['stopId'] != null) {
+          link(stationId, c['stopId'] as String);
+        }
+      }
+    }
+
+    debugPrint('🗺️ Graph:');
+    graph.forEach((k, vs) => debugPrint('  $k → ${vs.join(", ")}'));
+    return graph;
   }
 
-  // 2) Load all stations
-  final stationSnapshot =
-      await FirebaseFirestore.instance.collection(_routesCollection).get();
-  for (var doc in stationSnapshot.docs) {
-    final data = doc.data();
-    final stationId = data['id'] ?? doc.id;
-
-    // Existing station→station connections
-    final connections = (data['connections'] ?? <dynamic>[])
-        .map((c) => c['stationId'] as String)
-        .toList();
-
-    // ALSO link station → its stops
-    final stationStops = stopSnapshot.docs
-        .where((s) => s.data()['nearbyStationId'] == stationId)
-        .map((s) => s.data()['id'] ?? s.id)
-        .toList();
-
-    graph[stationId] = [...connections, ...stationStops];
-  }
-
-  debugPrint('🗺️ Full graph (stations+stops):');
-  graph.forEach((node, neighbors) {
-    debugPrint('  $node → ${neighbors.join(", ")}');
-  });
-
-  return graph;
-}
-
-/// Fetch either a station _or_ a stop by its ID
-static Future<TrotroStation> getNodeById(String id) async {
-  // Try station first
+  /// Fetch either a station _or_ a stop by its ID
+  static Future<TrotroStation> getNodeById(String id) async {
+  // 1️⃣ Try station first
   final stationDoc = await FirebaseFirestore.instance
       .collection('stations')
       .doc(id)
@@ -112,22 +169,39 @@ static Future<TrotroStation> getNodeById(String id) async {
   if (stationDoc.exists) {
     return TrotroStation.fromFirestore(stationDoc);
   }
-  // Fallback to stop model (you might need a Stop model class)
+
+  // 2️⃣ Fallback to stop
   final stopDoc = await FirebaseFirestore.instance
       .collection('stops')
       .doc(id)
       .get();
   if (stopDoc.exists) {
     final data = stopDoc.data()!;
-    return TrotroStation.temporary(  // reuse your station model, or create a Stop model
-      name: data['name'] ?? 'Stop',
-      latitude: data['coordinates']['lat'],
-      longitude: data['coordinates']['lng'],
+
+    // Safely extract nested coordinates map
+    double lat = 0.0, lng = 0.0;
+    final raw = data['coordinates'];
+    if (raw is Map) {
+      final coords = Map<String, dynamic>.from(raw);
+      lat = (coords['lat'] as num?)?.toDouble() ?? 0.0;
+      lng = (coords['lng'] as num?)?.toDouble() ?? 0.0;
+    }
+
+    return TrotroStation(
+      id:        stopDoc.id,
+      name:      data['name']      ?? 'Stop',
+      latitude:  lat,
+      longitude: lng,
+      isStation: false,
     );
   }
+
+  // 3️⃣ If neither exists, return a not‐found placeholder
   return TrotroStation.notFound(id);
 }
-/// Breadth-first search to find shortest path in graph
+
+ 
+  /// Breadth-first search to find shortest path in graph
   static List<String>? bfsPath(
       Map<String, List<String>> graph, String start, String goal) {
     final queue = <List<String>>[];
@@ -161,48 +235,49 @@ static Future<TrotroStation> getNodeById(String id) async {
     if (data == null) return 0;
     return (data["${fromId}_$toId"] ?? 0).toDouble();
   }
-/// Fetch station by its Firestore doc ID
-static Future<TrotroStation> getStationById(String stationId) async {
-  final doc = await FirebaseFirestore.instance
-      .collection('stations')
-      .doc(stationId)
-      .get();
-  if (!doc.exists) {
-    return TrotroStation.notFound(stationId);
-  }
-  return TrotroStation.fromFirestore(doc);
-}
 
-static Future<int> _busLegDurationSeconds(LatLng from, LatLng to) async {
-  // Try transit first, then driving
-  for (final mode in ['transit', 'driving']) {
-    final url = Uri.parse(
-      'https://maps.googleapis.com/maps/api/directions/json'
-      '?origin=${from.latitude},${from.longitude}'
-      '&destination=${to.latitude},${to.longitude}'
-      '&mode=$mode'
-      '&key=$_googleMapsApiKey'
-    );
-    final resp = await http.get(url);
-    final data = jsonDecode(resp.body);
-    debugPrint('[$mode] status=${data['status']} for $from → $to');
-    if (data['routes']?.isNotEmpty == true) {
-      final secs = data['routes'][0]['legs'][0]['duration']['value'] as int;
-      debugPrint('→ Got $secs s via $mode for $from → $to');
-      return secs;
+  /// Fetch station by its Firestore doc ID
+  static Future<TrotroStation> getStationById(String stationId) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('stations')
+        .doc(stationId)
+        .get();
+    if (!doc.exists) {
+      return TrotroStation.notFound(stationId);
     }
+    return TrotroStation.fromFirestore(doc);
   }
 
-  // Fallback to distance estimate
-  final distKm = haversineDistance(
-    lat1: from.latitude, lon1: from.longitude,
-    lat2: to.latitude,   lon2: to.longitude,
-  );
-  final fallback = estimateDuration(distanceInKm: distKm, type: 'bus');
-  debugPrint('Fallback estimate $fallback s for $from → $to');
-  return fallback;
-}
+  static Future<int> _busLegDurationSeconds(LatLng from, LatLng to) async {
+    // Try transit first, then driving
+    for (final mode in ['transit', 'driving']) {
+      final url =
+          Uri.parse('https://maps.googleapis.com/maps/api/directions/json'
+              '?origin=${from.latitude},${from.longitude}'
+              '&destination=${to.latitude},${to.longitude}'
+              '&mode=$mode'
+              '&key=$_googleMapsApiKey');
+      final resp = await http.get(url);
+      final data = jsonDecode(resp.body);
+      debugPrint('[$mode] status=${data['status']} for $from → $to');
+      if (data['routes']?.isNotEmpty == true) {
+        final secs = data['routes'][0]['legs'][0]['duration']['value'] as int;
+        debugPrint('→ Got $secs s via $mode for $from → $to');
+        return secs;
+      }
+    }
 
+    // Fallback to distance estimate
+    final distKm = haversineDistance(
+      lat1: from.latitude,
+      lon1: from.longitude,
+      lat2: to.latitude,
+      lon2: to.longitude,
+    );
+    final fallback = estimateDuration(distanceInKm: distKm, type: 'bus');
+    debugPrint('Fallback estimate $fallback s for $from → $to');
+    return fallback;
+  }
 
   /// Dart version of findRoute function (Geocode → BFS → Fare → Segments)
   static Future<List<CompositeRoute>> findRouteDartBased(
@@ -213,23 +288,40 @@ static Future<int> _busLegDurationSeconds(LatLng from, LatLng to) async {
 
     Future<Map<String, dynamic>?> _geocode(String place) async {
       final url = Uri.parse(
-          'https://maps.googleapis.com/maps/api/geocode/json?address=${Uri.encodeComponent(place)}&key=$_googleMapsApiKey');
+        'https://maps.googleapis.com/maps/api/geocode/json?address=${Uri.encodeComponent(place)}&key=$_googleMapsApiKey',
+      );
+
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+
         if (data['results'].isNotEmpty) {
-          debugPrint(
-              '📍 Geocoded "$place" → ${data['results'][0]['geometry']['location']}');
-          return data['results'][0]['geometry']['location'];
+          final result = data['results'][0];
+
+          // ✅ Check if the result is in Ghana
+          final components = result['address_components'] as List<dynamic>;
+          final isGhana = components.any((component) {
+            final types = component['types'] as List<dynamic>;
+            return types.contains('country') && component['short_name'] == 'GH';
+          });
+
+          if (!isGhana) {
+            debugPrint('❌ "$place" is outside Ghana. Skipping.');
+            return null;
+          }
+
+          final location = result['geometry']['location'];
+          debugPrint('📍 Geocoded "$place" → $location');
+          return location;
         } else {
           debugPrint('❌ Location not found. Try simplifying the name.');
-          return null;
         }
       } else {
         debugPrint(
             '❌ Geocode failed for "$place" with status ${response.statusCode}');
       }
+
       return null;
     }
 
@@ -258,9 +350,9 @@ static Future<int> _busLegDurationSeconds(LatLng from, LatLng to) async {
     final graph = await buildGraph();
     debugPrint('📊 Loaded graph with ${graph.length} stations.');
 
-    final startStation =
-        originNearest['nearbyStationId'] ?? originNearest['id'];
-    final endStation = destNearest['nearbyStationId'] ?? destNearest['id'];
+    final startStation = originNearest['id'];
+    final endStation = destNearest['id'];
+
     debugPrint('🧭 Finding path from "$startStation" to "$endStation"...');
 
     final allPaths = findAllPaths(graph, startStation, endStation);
@@ -283,8 +375,8 @@ static Future<int> _busLegDurationSeconds(LatLng from, LatLng to) async {
       // final walkDuration =
       //     estimateDuration(distanceInKm: walkDistance, type: 'walk');
       final fromCoord = LatLng(originGeo['lat'], originGeo['lng']);
-final toCoord   = LatLng(originNearest['lat'], originNearest['lng']);
-     final walkDuration = await _busLegDurationSeconds(fromCoord, toCoord);
+      final toCoord = LatLng(originNearest['lat'], originNearest['lng']);
+      final walkDuration = await _busLegDurationSeconds(fromCoord, toCoord);
 
       segments.add(RouteSegment(
         description: 'Walk to ${originNearest['name']}',
@@ -297,9 +389,21 @@ final toCoord   = LatLng(originNearest['lat'], originNearest['lng']);
       for (int i = 0; i < stationPath.length - 1; i++) {
         final from = stationPath[i];
         final to = stationPath[i + 1];
-        final fare = await fetchFare(from, to);
+        // 1) Try to read fare from the “from” node’s connections:
+        final fromNode = await getNodeById(from);
+        double fare;
+        final match =
+            fromNode.connections?.cast<Map<String, dynamic>>().firstWhere(
+                  (c) => (c['stationId'] == to) || (c['stopId'] == to),
+                  orElse: () => {},
+                );
+        if (match != null && match.containsKey('fare')) {
+          fare = (match['fare'] as num).toDouble();
+        } else {
+          // 2) Fallback to your external fare document
+          fare = await fetchFare(from, to);
+        }
         totalFare += fare;
-
         final fromStation = await getNodeById(from);
         final toStation = await getNodeById(to);
         final distance = haversineDistance(
@@ -328,7 +432,7 @@ final toCoord   = LatLng(originNearest['lat'], originNearest['lng']);
       routes.add(CompositeRoute(
         segments: segments,
         totalFare: totalFare,
-        totalDuration: totalDuration,
+        totalDuration: (totalDuration / 60).round(),
         departureTime: '${now.hour}:${now.minute.toString().padLeft(2, '0')}',
         arrivalTime:
             '${arrival.hour}:${arrival.minute.toString().padLeft(2, '0')}',
@@ -425,10 +529,12 @@ final toCoord   = LatLng(originNearest['lat'], originNearest['lng']);
     String start,
     String goal, {
     int maxDepth = 10, // Optional: prevent infinite recursion
+    int maxPaths = 3,   
   }) {
     List<List<String>> allPaths = [];
 
     void dfs(String current, List<String> path, Set<String> visited) {
+       if (allPaths.length >= maxPaths) return;  
       if (path.length > maxDepth) return; // Limit path length to avoid loops
       if (current == goal) {
         allPaths.add(List<String>.from(path));
@@ -442,183 +548,13 @@ final toCoord   = LatLng(originNearest['lat'], originNearest['lng']);
           dfs(neighbor, path, visited);
           path.removeLast();
           visited.remove(neighbor);
+          if (allPaths.length >= maxPaths) return;
         }
       }
     }
 
     dfs(start, [start], {start});
     return allPaths;
-  }
-
-  /// Searches for composite routes between origin and destination
-  /// with optional preferences and budget constraints
-  static Future<List<CompositeRoute>> searchCompositeRoutes({
-    required String origin,
-    required String destination,
-    String preference = 'none',
-    double? budget,
-  }) async {
-    try {
-      // Validate inputs
-      if (origin.isEmpty || destination.isEmpty) {
-        throw ArgumentError('Origin and destination cannot be empty');
-      }
-
-      final response = await _makeRouteSearchRequest(
-        origin: origin,
-        destination: destination,
-        preference: preference,
-        budget: budget,
-      );
-
-      final data = jsonDecode(response.body);
-      return _parseRouteResponse(data, origin, destination);
-    } on http.ClientException catch (e) {
-      debugPrint('Network error during route search: $e');
-      throw Exception('Network error. Please check your connection.');
-    } on FormatException catch (e) {
-      debugPrint('Invalid response format: $e');
-      throw Exception('Invalid route data received. Please try again.');
-    } catch (e) {
-      debugPrint('Composite route search error: $e');
-      rethrow;
-    }
-  }
-
-  /// Makes the HTTP request to the route search endpoint
-  static Future<http.Response> _makeRouteSearchRequest({
-    required String origin,
-    required String destination,
-    required String preference,
-    double? budget,
-  }) async {
-    final url = Uri.parse(_searchRoutesEndpoint);
-    final payload = {
-      "origin": origin,
-      "destination": destination,
-      "preference": preference,
-      "budget": budget,
-    };
-
-    final response = await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(payload),
-    );
-
-    if (response.statusCode != 200) {
-      throw HttpException(
-        "Route search failed with status ${response.statusCode}: ${response.body}",
-        statusCode: response.statusCode,
-      );
-    }
-
-    return response;
-  }
-
-  /// Parses the route search response into CompositeRoute objects
-  static List<CompositeRoute> _parseRouteResponse(
-    Map<String, dynamic> data,
-    String origin,
-    String destination,
-  ) {
-    final segments = <RouteSegment>[];
-
-    // Add walk to start segment if present
-    if (data['walkToStart'] != null) {
-      segments.add(_createWalkSegment(
-        data['walkToStart'],
-        prefix: 'Walk to start',
-      ));
-    }
-
-    // Add all trotro segments
-    for (var seg in data['trotroSegments'] ?? []) {
-      segments.add(_createTrotroSegment(seg));
-    }
-
-    // Add walk to destination segment if present
-    if (data['walkToEnd'] != null) {
-      segments.add(_createWalkSegment(
-        data['walkToEnd'],
-        prefix: 'Walk to destination',
-      ));
-    }
-
-    // Calculate timing information
-    final (departureTime, arrivalTime, totalDuration) =
-        _calculateTiming(segments);
-
-    return [
-      CompositeRoute(
-        segments: segments,
-        totalFare: (data['totalFare'] as num?)?.toDouble() ?? 0.0,
-        totalDuration: totalDuration,
-        departureTime: departureTime,
-        arrivalTime: arrivalTime,
-        origin: origin,
-        destination: destination,
-      )
-    ];
-  }
-
-  /// Creates a walk segment from response data
-  static RouteSegment _createWalkSegment(
-    Map<String, dynamic> data, {
-    String prefix = 'Walk',
-  }) {
-    return RouteSegment(
-      description: data['instructions'] ?? '$prefix',
-      fare: 0,
-      duration: _parseDuration(data['duration'] ?? '0 min'),
-      type: 'walk',
-    );
-  }
-
-  /// Creates a trotro segment from response data
-  static RouteSegment _createTrotroSegment(Map<String, dynamic> seg) {
-    return RouteSegment(
-      description: 'Ride from ${seg['from']} to ${seg['to']}',
-      fare: (seg['fare'] as num?)?.toDouble() ?? 0.0,
-      duration: 900, // 15 min estimate
-      type: 'bus',
-    );
-  }
-
-  /// Calculates departure, arrival times and total duration
-  static (String, String, int) _calculateTiming(List<RouteSegment> segments) {
-    final departure = DateTime.now();
-    final totalDuration = segments.fold<int>(0, (sum, s) => sum + s.duration);
-    final arrival = departure.add(Duration(seconds: totalDuration));
-
-    return (
-      _formatTime(departure),
-      _formatTime(arrival),
-      totalDuration,
-    );
-  }
-
-  /// Parses duration strings like "5 min" or "1 hour 30 min" into seconds
-  static int _parseDuration(String text) {
-    try {
-      if (text.contains("hour")) {
-        final parts = text.split(" ");
-        final hour = int.tryParse(parts[0]) ?? 0;
-        final min = int.tryParse(parts.length > 2 ? parts[2] : "0") ?? 0;
-        return (hour * 60 + min) * 60;
-      } else {
-        final min = int.tryParse(text.split(" ")[0]) ?? 0;
-        return min * 60;
-      }
-    } catch (e) {
-      debugPrint('Error parsing duration "$text": $e');
-      return 0;
-    }
-  }
-
-  /// Formats DateTime into HH:MM format
-  static String _formatTime(DateTime time) {
-    return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
   }
 
   /// Calculates distance between two points using Haversine formula
@@ -646,16 +582,4 @@ final toCoord   = LatLng(originNearest['lat'], originNearest['lng']);
 
   /// Converts degrees to radians
   static double _toRadians(double degrees) => degrees * pi / 180;
-}
-
-/// Custom exception for HTTP errors
-class HttpException implements Exception {
-  final String message;
-  final int? statusCode;
-
-  HttpException(this.message, {this.statusCode});
-
-  @override
-  String toString() =>
-      'HttpException: $message${statusCode != null ? ' (Status $statusCode)' : ''}';
 }

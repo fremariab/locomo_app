@@ -3,6 +3,7 @@ import 'package:locomo_app/screens/register.dart';
 import 'package:locomo_app/services/auth_service.dart';
 import 'search.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -27,9 +28,58 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // Show message at the bottom
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+  void _showSuccessMessage(String message) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.success, // Other types: SUCCESS, ERROR, WARNING
+      animType: AnimType.scale,
+      title: 'Success',
+      desc: message,
+      btnOkOnPress: () {},
+      btnOkColor: const Color.fromARGB(255, 20, 123, 7), // optional
+      customHeader: const Icon(
+        Icons.check_circle_outline,
+        color: Color.fromARGB(255, 20, 123, 7),
+        size: 60,
+      ),
+      showCloseIcon: true,
+    ).show();
+  }
+
+  void _showErrorMessage(String message) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.error, // Other types: SUCCESS, ERROR, WARNING
+      animType: AnimType.scale,
+      title: 'Error',
+      showCloseIcon: true,
+
+      desc: message,
+      btnOkOnPress: () {},
+      btnOkColor: const Color(0xFFC32E31),
+      customHeader: const Icon(
+        Icons.error_outline,
+        color: Color(0xFFC32E31),
+        size: 60,
+      ), // optional
+    ).show();
+  }
+
+  void _showInfoMessage(String message) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.noHeader, // Other types: SUCCESS, ERROR, WARNING
+      animType: AnimType.scale,
+      desc: message,
+      btnOkOnPress: () {},
+      btnOkColor: const Color(0xFF656565), // optional
+      showCloseIcon: true,
+      customHeader: const Icon(
+        Icons.info_outline,
+        color: Color(0xFF656565),
+        size: 60,
+      ),
+    ).show();
   }
 
   // Handle login logic
@@ -38,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      _showMessage('Please fill in all fields');
+      _showErrorMessage('Please fill in all fields');
       return;
     }
 
@@ -49,40 +99,40 @@ class _LoginScreenState extends State<LoginScreen> {
       if (user != null) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) =>  TravelHomePage(
+            builder: (context) => TravelHomePage(
               initialOrigin: null,
               initialDestination: null,
             ),
           ),
         );
       } else {
-        _showMessage('Login failed. Please try again.');
+        _showErrorMessage('Login failed. Please try again.');
       }
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
         case 'user-not-found':
         case 'wrong-password':
-          _showMessage('Invalid email or password');
+          _showErrorMessage('Invalid email or password');
           break;
         case 'user-disabled':
-          _showMessage('This account has been disabled');
+          _showErrorMessage('This account has been disabled');
           break;
         case 'too-many-requests':
-          _showMessage(
+          _showErrorMessage(
               'Too many failed login attempts. Please try again later');
           break;
         case 'network-request-failed':
-          _showMessage(
+          _showErrorMessage(
               'No internet connection. Please check your network and try again.');
           break;
         default:
-          _showMessage('Login error: ${e.message}');
+          _showErrorMessage('Login error: ${e.message}');
       }
     } catch (e) {
       if (e.toString().contains('No internet connection')) {
-        _showMessage(e.toString());
+        _showErrorMessage(e.toString());
       } else {
-        _showMessage('Login failed: ${e.toString()}');
+        _showErrorMessage('Login failed: ${e.toString()}');
       }
     } finally {
       setState(() => _isLoading = false);
@@ -94,24 +144,24 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
 
     if (email.isEmpty) {
-      _showMessage('Please enter your email address');
+      _showErrorMessage('Please enter your email address');
       return;
     }
 
     try {
       final result = await _authService.resetPassword(email);
       if (result) {
-        _showMessage('Password reset email sent to $email');
+        _showInfoMessage('Password reset email sent to $email');
       } else {
-        _showMessage('Failed to send password reset email');
+        _showErrorMessage('Failed to send password reset email');
       }
     } catch (e) {
       if (e.toString().contains('network') ||
           e.toString().contains('connection')) {
-        _showMessage(
+        _showErrorMessage(
             'No internet connection. Please check your network and try again.');
       } else {
-        _showMessage('Error: ${e.toString()}');
+        _showErrorMessage('Error: ${e.toString()}');
       }
     }
   }
@@ -119,6 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFFFFFFF),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -259,6 +310,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
+                      style: ButtonStyle(
+                          backgroundColor:
+                              MaterialStateProperty.all(Colors.white)),
                       onPressed: _forgotPassword,
                       child: const Text(
                         'Forgot Password?',

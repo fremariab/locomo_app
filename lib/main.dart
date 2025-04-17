@@ -19,6 +19,7 @@ import 'screens/search.dart'; // your home screen after login
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env"); // Load the env file
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -65,6 +66,18 @@ class MyApp extends StatelessWidget {
         ),
         fontFamily: 'Poppins',
         useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFc32e31),
+          iconTheme: IconThemeData(color: Colors.white), // back arrow color
+          centerTitle: true,
+
+          titleTextStyle: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       home: initialScreen,
       routes: {
